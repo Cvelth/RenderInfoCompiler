@@ -121,5 +121,10 @@ void compile_file(std::string const& path) {
 	}
 
 	std::cout << "Compiling " + path + "...\n";
-	ric::compile(f);
+	try {
+		ric::compile(f);
+	} catch (ric::Exceptions::CompilationError &e) {
+		std::cout << e.what();
+		exit(1);
+	}
 }

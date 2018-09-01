@@ -7,6 +7,13 @@ std::string ric::get_version() {
 }
 
 #include "ric.hpp"
+std::string ric::Exceptions::CompilationError::what() const {
+	std::ostringstream s;
+	s << "Compilation error at position " << pos << " of line " << line << ":\n    "
+		<< error << "\n";
+	return s.str();
+}
+
 #include <list>
 namespace ric {
 	enum class TokenType {
@@ -173,17 +180,19 @@ namespace ric {
 
 		for (auto it = tokens.begin(); it != tokens.end(); it++)
 			if (it->type == TokenType::unknown) {
-				if (it->value.size() == 1)
+				if (it->value.size() == 1) {
 					if (is_operator(it))
 						continue;
-				if (is_reserved(it))
+				} else if (is_reserved(it))
 					continue;
-				if (is_number(it))
+				else if (is_number(it))
 					continue;
-				if (is_identificator(it))
+				else if (is_identificator(it))
 					continue;
-				if (is_color_literal(it))
+				else if (is_color_literal(it))
 					continue;
+				else
+					throw Exceptions::CompilationError("Unknown Token : " + it->value, it->line, it->pos);
 			}
 		return tokens;
 	}
