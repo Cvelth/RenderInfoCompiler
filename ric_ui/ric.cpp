@@ -1,15 +1,17 @@
-#include "ric_lib/ric.hpp"
 #include "ric_lib/version.hpp"
 #include <filesystem>
 #include <iostream>
 void print_help();
 std::list<std::string> split_string(std::string const& string, std::string const& separator = "\n");
+void compile_file(std::string const& path);
 
 int main(int argc, char **argv) {
 	std::string source = "", destination = "";
 	bool override_specifier = true;
 	bool recursive_paths = false;
 	bool special_call = false;
+
+	std::list<std::string> target_file_extentions = {"ris"};
 
 	for (int i = 1; i < argc; i++) {
 		if (auto t = std::string(argv[i]); t == "-version") {
@@ -44,33 +46,39 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 	
-	for (auto path : split_string(source, ";")) {
-		auto full_path = std::filesystem::current_path().generic_string() + '/' + path;
-		if (std::filesystem::exists(full_path)) {
-			if (std::filesystem::is_directory(full_path)) {
-				if (recursive_paths) {
-					for (auto file : std::filesystem::recursive_directory_iterator(std::filesystem::current_path().generic_string() + path))
-						if (!std::filesystem::is_directory(file.path())) {
-							//file.
-							std::cout << file.path().generic_string() << " is to be compiled.\n";
-						}
+	try {
+		for (auto path : split_string(source, ";")) {
+			auto full_path = std::filesystem::current_path().generic_string() + '/' + path;
+			if (std::filesystem::exists(full_path)) {
+				if (std::filesystem::is_directory(full_path)) {
+					if (recursive_paths) {
+						for (auto file : std::filesystem::recursive_directory_iterator(full_path))
+							if (!std::filesystem::is_directory(file.path())) {
+								for (auto extention : target_file_extentions)
+									if (extention == split_string(file.path().generic_string(), ".").back())
+										compile_file(file.path().generic_string());
+							}
+					} else {
+						for (auto file : std::filesystem::directory_iterator(full_path))
+							if (!std::filesystem::is_directory(file.path())) {
+								for (auto extention : target_file_extentions)
+									if (extention == split_string(file.path().generic_string(), ".").back())
+										compile_file(file.path().generic_string());
+							}
+					}
 				} else {
-					for (auto file : std::filesystem::directory_iterator(std::filesystem::current_path().generic_string() + path))
-						if (!std::filesystem::is_directory(file.path())) {
-							//file.
-							std::cout << file.path().generic_string() << " is to be compiled.\n";
-						}
+					for (auto extention : target_file_extentions)
+						if (extention == split_string(full_path, ".").back())
+							compile_file(full_path);
 				}
 			} else {
-				//file
-				std::cout << full_path << " is to be compiled.\n";
+				std::cout << "Error: file or directory '" << full_path << "' does not exist. It was skipped.\n";
 			}
-		} else {
-			std::cout << "Error: file(or directory) '" << full_path << "' does not exist. It is skipped.\n";
 		}
+	} catch (std::system_error) {
+		std::cout << "Error: it seems like a file with unsupportable name was met. Aborting...\n"
+			<< "    Make sure there are no UTF-16 file-names.\n";
 	}
-
-	//std::getchar();
 	return 0;
 }
 void print_help() {
@@ -100,4 +108,11 @@ std::list<std::string> split_string(std::string const& string, std::string const
 		last_position = position + 1;
 	}
 	return ret;
+}
+
+#include "ric_lib/ric.hpp"
+void compile_file(std::string const& path) {
+	ric::RenderInfoCompiler r;
+	//compilation here.
+	std::cout << "Compiling " + std::string("a file")/*path*/ + "...\n";
 }
