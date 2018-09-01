@@ -7,5 +7,5 @@ std::string ric::get_version() {
 }
 
 #include "ric.hpp"
-ric::RenderInfoCompiller::RenderInfoCompiller() {}
-ric::RenderInfoCompiller::~RenderInfoCompiller() {}
+ric::RenderInfoCompiler::RenderInfoCompiler() {}
+ric::RenderInfoCompiler::~RenderInfoCompiler() {}

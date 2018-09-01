@@ -1,8 +1,8 @@
 #pragma once
 namespace ric {
-	class RenderInfoCompiller {
+	class RenderInfoCompiler {
 	public:
-		RenderInfoCompiller();
-		~RenderInfoCompiller();
+		RenderInfoCompiler();
+		~RenderInfoCompiler();
 	};
 }
