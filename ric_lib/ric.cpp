@@ -44,15 +44,22 @@ const std::list<std::string> reserved = {
 };
 
 namespace ric {
+	void add_line(std::list<Token> &tokens, bool &is_commentary, std::string line, size_t c, size_t p = 0) {
+		if (!is_commentary && line.size() != 0)
+			if (line.at(0) == '#') {
+				//handle precompiler directive.
+			} else
+				tokens.push_back(Token(TokenType::unknown, line, c, p));
+	}
 	void parse_line(std::list<Token> &tokens, bool &is_commentary, std::string line, size_t c) {
+		size_t p_shift = 0;
 		for (int i = 0; i < line.size() - 1; i++)
 			if (!is_commentary && line.at(i) == '/' && line.at(i + 1) == '*') {
-				line = line.substr(0, i);
-				is_commentary = true;
-				if (line.size() == 0)
-					return;
+				add_line(tokens, is_commentary, line.substr(0, i), c, p_shift);
+				is_commentary = true; i++;
 			} else if (is_commentary && line.at(i) == '*' && line.at(i + 1) == '/') {
 				line = line.substr(i + 2);
+				p_shift = i + 2; i = 0;
 				is_commentary = false;
 				if (line.size() == 0)
 					return;
@@ -61,12 +68,7 @@ namespace ric {
 				if (line.size() == 0)
 					return;
 			}
-			if (!is_commentary) {
-				if (line.at(0) == '#') {
-					//handle precompiler directive.
-				} else
-					tokens.push_back(Token(TokenType::unknown, line, c, 0));
-			}
+		add_line(tokens, is_commentary, line, c, p_shift);
 	}
 
 	bool split_tokens(std::list<Token> &tokens, std::list<Token>::iterator &it, int i) {
@@ -110,9 +112,16 @@ namespace ric {
 		return false;
 	}
 	bool is_number(std::string const& s) {
-		for (int i = 0; i < s.size(); i++)
-			if (!(isdigit(s[i]) || s[i] == '.'))
+		bool has_point = false;
+		for (int i = 0; i < s.size(); i++) {
+			if (s[i] == '.')
+				if (has_point)
+					return false;
+				else
+					has_point = true;
+			else if (!(isdigit(s[i])))
 				return false;
+		}
 		return true;
 	}
 	bool is_number(std::list<Token>::iterator &it) {
@@ -133,16 +142,20 @@ namespace ric {
 		if (ret) it->type = TokenType::identificator;
 		return ret;
 	}
-	bool is_color_literal(std::string const& s) {
+	bool is_color_literal(std::string const& s, size_t line, size_t pos) {
 		if (s.size() < 2 || s[0] != '0' || s[1] != 'x')
 			return false;
-		for (int i = 1; i < s.size(); i++)
-			if (!(isalnum(s[i])))
-				return false;
+		if (s.size() > 10)
+			throw Exceptions::CompilationError("Color literal seems to be broken: " + s + "\n    "
+											   "Literal cannot consist of more than 8 digits.", line, pos);
+		for (int i = 2; i < s.size(); i++)
+			if ((s[i] < '0' || s[i] > '9') && (s[i] < 'A' || s[i] > 'F') && (s[i] < 'a' || s[i] > 'f'))
+				throw Exceptions::CompilationError("Color literal seems to be broken: " + s + "\n    '"
+												   + s[i] + "' is not a valid hex-digit.", line, pos);
 		return true;
 	}
 	bool is_color_literal(std::list<Token>::iterator &it) {
-		bool ret = is_color_literal(it->value);
+		bool ret = is_color_literal(it->value, it->line, it->pos);
 		if (ret)
 			it->type = TokenType::color_literal;
 		return ret;
@@ -154,9 +167,14 @@ namespace ric {
 		bool is_commentary = false;
 		size_t c = 0;
 		std::string temp;
-		while (std::getline(source, temp))
+		while (std::getline(source, temp)) {
 			if (temp.size() != 0)
-				parse_line(tokens, is_commentary, temp, c++);
+				parse_line(tokens, is_commentary, temp, c);
+			c++;
+		}
+		if (is_commentary)
+			throw Exceptions::CompilationError("Looks like there is an unclosed commentary at the end of the file.", 
+											   c, 0);
 
 		for (auto it = tokens.begin(); it != tokens.end(); it++)
 			if (it->type == TokenType::unknown)
@@ -192,7 +210,7 @@ namespace ric {
 				else if (is_color_literal(it))
 					continue;
 				else
-					throw Exceptions::CompilationError("Unknown Token : " + it->value, it->line, it->pos);
+					throw Exceptions::CompilationError("Unknown Token: " + it->value, it->line, it->pos);
 			}
 		return tokens;
 	}
