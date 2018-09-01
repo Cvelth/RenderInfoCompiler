@@ -111,8 +111,15 @@ std::list<std::string> split_string(std::string const& string, std::string const
 }
 
 #include "ric_lib/ric.hpp"
+#include <fstream>
 void compile_file(std::string const& path) {
-	ric::RenderInfoCompiler r;
-	//compilation here.
-	std::cout << "Compiling " + std::string("a file")/*path*/ + "...\n";
+	std::ifstream f;
+	f.open(path);
+	if (!f) {
+		std::cout << "Unable to open file '" + path + "'.\n";
+		exit(1);
+	}
+
+	std::cout << "Compiling " + path + "...\n";
+	ric::RenderInfoCompiler().compile(f);
 }

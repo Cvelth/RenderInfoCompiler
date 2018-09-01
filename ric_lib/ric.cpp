@@ -7,5 +7,6 @@ std::string ric::get_version() {
 }
 
 #include "ric.hpp"
-ric::RenderInfoCompiler::RenderInfoCompiler() {}
-ric::RenderInfoCompiler::~RenderInfoCompiler() {}
+void ric::RenderInfoCompiler::compile(std::istream &source) {
+
+}

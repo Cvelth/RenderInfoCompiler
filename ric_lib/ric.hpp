@@ -1,8 +1,8 @@
 #pragma once
+#include <istream>
 namespace ric {
 	class RenderInfoCompiler {
 	public:
-		RenderInfoCompiler();
-		~RenderInfoCompiler();
+		void compile(std::istream &source);
 	};
 }
