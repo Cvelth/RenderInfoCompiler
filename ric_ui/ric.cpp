@@ -121,5 +121,5 @@ void compile_file(std::string const& path) {
 	}
 
 	std::cout << "Compiling " + path + "...\n";
-	ric::RenderInfoCompiler().compile(f);
+	ric::compile(f);
 }
