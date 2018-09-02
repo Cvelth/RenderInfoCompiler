@@ -23,7 +23,10 @@
     <ClCompile Include="ric.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Tokenize.cpp">
+    <ClCompile Include="syntax.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="tokenize.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

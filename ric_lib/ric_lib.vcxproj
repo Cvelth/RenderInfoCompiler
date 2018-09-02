@@ -140,7 +140,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ric.cpp" />
-    <ClCompile Include="Tokenize.cpp" />
+    <ClCompile Include="syntax.cpp" />
+    <ClCompile Include="tokenize.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
