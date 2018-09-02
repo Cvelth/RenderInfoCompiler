@@ -61,10 +61,11 @@ const std::set<char> s_tokens {';', ',', '{', '}', '[', ']', '(', ')', '/', '*',
 const std::set<std::string> reserved {
 	"palette", "color", "object", "primitive"
 };
+
 #include <map>
-const std::list<std::tuple<std::string, bool, std::set<std::string>>> library_reserved {
-	{ "primitives", false, std::set<std::string>{ "ellipse", "circle", "rectangle", "square" } },
-	{ "transformations", false, std::set<std::string>{ "translate", "scale", "rotate" } }
+std::map<std::string, std::pair<bool, std::set<std::string>>> library_reserved {
+	std::make_pair("primitives", std::make_pair(false, std::set<std::string>{ "ellipse", "circle", "rectangle", "square" })),
+	std::make_pair("transformations", std::make_pair(false, std::set<std::string>{ "translate", "scale", "rotate" })),
 };
 
 //#use parameters.
@@ -85,7 +86,20 @@ namespace ric {
 			throw Exceptions::InnerCompilationError("Unknown use directive.", c, p);
 	}
 	void include_directive(std::list<Token> &tokens, std::string line, size_t c, size_t p = 0) {
+		std::istringstream s(line);
+		std::string temp;
+		if (s >> temp >> temp >> temp)
+			throw Exceptions::InnerCompilationError("Junk information at the end of #include directive.", c, p);
 
+		if (!temp.empty() && temp.front() == '<' && temp.back() == '>') {
+			if (auto lib = library_reserved.find(temp.substr(1, temp.size() - 2)); lib != library_reserved.end())
+				lib->second.first = true;
+			else
+				throw Exceptions::InnerCompilationError("There is no standart library with the name: " + temp.substr(1, temp.size() - 2), c, p + 8);
+		} else if (temp.size() > 2 && temp.front() == '"' && temp.back() == '"') {
+			//Include of the files from the same directory is to be implemented here.
+		} else
+			throw Exceptions::InnerCompilationError("Unsupported parameter in #include directive.", c, p);
 	}
 	void add_line(std::list<Token> &tokens, bool &is_commentary, std::string line, size_t c, size_t p = 0) {
 		if (!is_commentary && line.size() != 0)
@@ -163,8 +177,8 @@ namespace ric {
 			return true;
 		} else 
 			for (auto lib : library_reserved)
-				if (std::get<1>(lib))
-					if (std::get<2>(lib).find(it->value) != reserved.end()) {
+				if (lib.second.first)
+					if (lib.second.second.find(it->value) != lib.second.second.end()) {
 						it->type = TokenType::library;
 						return true;
 					}
@@ -287,8 +301,9 @@ void ric::compile(std::string const& path) {
 		throw Exceptions::CompilationError("Unable to open file.", 0, 0, path);
 		exit(1);
 	}
+	std::list<ric::Token> tokens;
 	try {
-		auto tokens = tokenize(f);
+		tokens = tokenize(f);
 	} catch (Exceptions::InnerCompilationError &e) {
 		throw Exceptions::CompilationError(e, path);
 	}
