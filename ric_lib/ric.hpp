@@ -1,18 +1,20 @@
 #pragma once
 #include <string>
-#include <istream>
 #include <exception>
 namespace ric {
-	void compile(std::istream &source);
+	void compile(std::string const& path);
 
 	namespace Exceptions {
+		class InnerCompilationError;
+
 		class CompilationError {
 		public:
 			std::string error;
 			size_t line;
 			size_t pos;
-			CompilationError(std::string const& error, size_t line, size_t pos) 
-				: error(error), line(line), pos(pos) {}
+			std::string file;
+			CompilationError(std::string const& error, size_t line, size_t pos, std::string const& file);
+			CompilationError(InnerCompilationError const& error, std::string const& file);
 			std::string what() const;
 		};
 	}

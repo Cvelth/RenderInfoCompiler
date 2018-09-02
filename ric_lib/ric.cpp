@@ -7,9 +7,24 @@ std::string ric::get_version() {
 }
 
 #include "ric.hpp"
+namespace ric::Exceptions {
+	class InnerCompilationError {
+	public:
+		std::string error;
+		size_t line;
+		size_t pos;
+		InnerCompilationError(std::string const& error, size_t line, size_t pos)
+			: error(error), line(line), pos(pos) {}
+	};
+}
+ric::Exceptions::CompilationError::CompilationError(std::string const& error, size_t line, size_t pos, std::string const& file)
+	: error(error), line(line), pos(pos), file(file) {}
+ric::Exceptions::CompilationError::CompilationError(InnerCompilationError const& _error, std::string const& file)
+	: error(_error.error), line(_error.line), pos(_error.pos), file(file) {}
 std::string ric::Exceptions::CompilationError::what() const {
 	std::ostringstream s;
-	s << "Compilation error at position " << pos << " of line " << line << ":\n    "
+	s << "Error compiling " << file << "\n\t\t" 
+		<< "at position " << pos << " of line " << line << ":\n    "
 		<< error << "\n";
 	return s.str();
 }
@@ -60,26 +75,29 @@ namespace ric {
 		std::istringstream s(line);
 		std::string temp;
 		if (s >> temp >> temp >> temp)
-			throw Exceptions::CompilationError("Junk information at the end of #use directive.", c, p);
+			throw Exceptions::InnerCompilationError("Junk information at the end of #use directive.", c, p);
 
 		if (temp == "double_precision")
 			double_precision = true;
 		else if (temp == "single_precision")
 			double_precision = false;
 		else
-			throw Exceptions::CompilationError("Unknown use directive.", c, p);
+			throw Exceptions::InnerCompilationError("Unknown use directive.", c, p);
+	}
+	void include_directive(std::list<Token> &tokens, std::string line, size_t c, size_t p = 0) {
+
 	}
 	void add_line(std::list<Token> &tokens, bool &is_commentary, std::string line, size_t c, size_t p = 0) {
 		if (!is_commentary && line.size() != 0)
 			if (line.at(0) == '#') {
 				if (line.substr(0, 8) == "#include") {
-					//include directive;
+					include_directive(tokens, line, c, p);
 				} else if (line.substr(0, 4) == "#use") {
 					use_directive(line, c, p);
 				} else if (line.substr(0, 2) == "# ")
-					throw Exceptions::CompilationError("There should be no space after '#' in directives.", c, p);
+					throw Exceptions::InnerCompilationError("There should be no space after '#' in directives.", c, p);
 				else
-					throw Exceptions::CompilationError("Unknown preprocessor directive: " + line, c, p);
+					throw Exceptions::InnerCompilationError("Unknown preprocessor directive: " + line, c, p);
 			} else
 				tokens.push_back(Token(TokenType::unknown, line, c, p));
 	}
@@ -192,11 +210,11 @@ namespace ric {
 		if (s.size() < 2 || s[0] != '0' || s[1] != 'x')
 			return false;
 		if (s.size() > 10)
-			throw Exceptions::CompilationError("Color literal seems to be broken: " + s + "\n    "
+			throw Exceptions::InnerCompilationError("Color literal seems to be broken: " + s + "\n    "
 											   "Literal cannot consist of more than 8 digits.", line, pos);
 		for (int i = 2; i < s.size(); i++)
 			if ((s[i] < '0' || s[i] > '9') && (s[i] < 'A' || s[i] > 'F') && (s[i] < 'a' || s[i] > 'f'))
-				throw Exceptions::CompilationError("Color literal seems to be broken: " + s + "\n    '"
+				throw Exceptions::InnerCompilationError("Color literal seems to be broken: " + s + "\n    '"
 												   + s[i] + "' is not a valid hex-digit.", line, pos);
 		return true;
 	}
@@ -219,7 +237,7 @@ namespace ric {
 			c++;
 		}
 		if (is_commentary)
-			throw Exceptions::CompilationError("Looks like there is an unclosed commentary at the end of the file.", 
+			throw Exceptions::InnerCompilationError("Looks like there is an unclosed commentary at the end of the file.", 
 											   c, 0);
 
 		for (auto it = tokens.begin(); it != tokens.end(); it++)
@@ -255,13 +273,24 @@ namespace ric {
 				else if (is_color_literal(it))
 					continue;
 				else
-					throw Exceptions::CompilationError("Unknown Token: " + it->value, it->line, it->pos);
+					throw Exceptions::InnerCompilationError("Unknown Token: " + it->value, it->line, it->pos);
 			}
 		return tokens;
 	}
 }
 
-void ric::compile(std::istream &source) {
-	auto tokens = tokenize(source);
+#include <fstream>
+void ric::compile(std::string const& path) {
+	std::ifstream f;
+	f.open(path);
+	if (!f) {
+		throw Exceptions::CompilationError("Unable to open file.", 0, 0, path);
+		exit(1);
+	}
+	try {
+		auto tokens = tokenize(f);
+	} catch (Exceptions::InnerCompilationError &e) {
+		throw Exceptions::CompilationError(e, path);
+	}
 	return;
 }
