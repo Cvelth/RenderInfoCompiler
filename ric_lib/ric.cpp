@@ -24,7 +24,7 @@ bool ric::use_parameters::double_precision = false;
 
 namespace ric {
 	std::list<Token> tokenize(std::string const& path);
-	Syntax analyze(std::list<Token> const& path);
+	Syntax analyze(std::list<Token> const& tokens);
 }
 void ric::compile(std::string const& path) {
 	std::list<ric::Token> tokens;
