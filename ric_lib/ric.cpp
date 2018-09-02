@@ -20,12 +20,15 @@ namespace ric {
 		unknown,
 		semicolon,
 		comma,
+		arithmetic,
 		block,
 		index,
+		bracket,
 		reserved,
+		library,
 		identificator,
 		number,
-		color_literal
+		color_literal,
 	};
 	struct Token {
 		TokenType type;
@@ -37,17 +40,46 @@ namespace ric {
 		std::string const* operator->() const { return &value; }
 	};
 }
-const std::string separators = " \t";
-const std::string s_tokens = ";,{}[]/*=";
-const std::list<std::string> reserved = {
+#include <set>
+const std::set<char> separators {' ', '\t'};
+const std::set<char> s_tokens {';', ',', '{', '}', '[', ']', '(', ')', '/', '*', '+', '-', '='};
+const std::set<std::string> reserved {
 	"palette", "color", "object", "primitive"
 };
+#include <map>
+const std::list<std::tuple<std::string, bool, std::set<std::string>>> library_reserved {
+	{ "primitives", false, std::set<std::string>{ "ellipse", "circle", "rectangle", "square" } },
+	{ "transformations", false, std::set<std::string>{ "translate", "scale", "rotate" } }
+};
+
+//#use parameters.
+bool double_precision = false;
 
 namespace ric {
+	void use_directive(std::string line, size_t c, size_t p = 0) {
+		std::istringstream s(line);
+		std::string temp;
+		if (s >> temp >> temp >> temp)
+			throw Exceptions::CompilationError("Junk information at the end of #use directive.", c, p);
+
+		if (temp == "double_precision")
+			double_precision = true;
+		else if (temp == "single_precision")
+			double_precision = false;
+		else
+			throw Exceptions::CompilationError("Unknown use directive.", c, p);
+	}
 	void add_line(std::list<Token> &tokens, bool &is_commentary, std::string line, size_t c, size_t p = 0) {
 		if (!is_commentary && line.size() != 0)
 			if (line.at(0) == '#') {
-				//handle precompiler directive.
+				if (line.substr(0, 8) == "#include") {
+					//include directive;
+				} else if (line.substr(0, 4) == "#use") {
+					use_directive(line, c, p);
+				} else if (line.substr(0, 2) == "# ")
+					throw Exceptions::CompilationError("There should be no space after '#' in directives.", c, p);
+				else
+					throw Exceptions::CompilationError("Unknown preprocessor directive: " + line, c, p);
 			} else
 				tokens.push_back(Token(TokenType::unknown, line, c, p));
 	}
@@ -100,20 +132,34 @@ namespace ric {
 				case ',': it->type = TokenType::comma; return true;
 				case '{': case '}': it->type = TokenType::block; return true;
 				case '[': case ']': it->type = TokenType::index; return true;
+				case '(': case ')': it->type = TokenType::bracket; return true;
+
+				case '+': case '-': case '*': case '/': case '=':
+					it->type = TokenType::arithmetic; return true;
 			}
 		return false;
 	}
 	bool is_reserved(std::list<Token>::iterator &it) {
-		for (auto r : reserved)
-			if (it->value == r) {
-				it->type = TokenType::reserved;
-				return true;
-			}
+		if (reserved.find(it->value) != reserved.end()) {
+			it->type = TokenType::reserved;
+			return true;
+		} else 
+			for (auto lib : library_reserved)
+				if (std::get<1>(lib))
+					if (std::get<2>(lib).find(it->value) != reserved.end()) {
+						it->type = TokenType::library;
+						return true;
+					}
 		return false;
 	}
 	bool is_number(std::string const& s) {
 		bool has_point = false;
-		for (int i = 0; i < s.size(); i++) {
+		if (s.size() == 0 || !(isdigit(s[0]) || s[0] == '+' || s[0] == '-'))
+			if (s[0] == '.')
+				has_point = true;
+			else
+				return false;
+		for (int i = 1; i < s.size(); i++) {
 			if (s[i] == '.')
 				if (has_point)
 					return false;
@@ -198,10 +244,9 @@ namespace ric {
 
 		for (auto it = tokens.begin(); it != tokens.end(); it++)
 			if (it->type == TokenType::unknown) {
-				if (it->value.size() == 1) {
-					if (is_operator(it))
-						continue;
-				} else if (is_reserved(it))
+				if (it->value.size() == 1 && is_operator(it))
+					continue;
+				else if (is_reserved(it))
 					continue;
 				else if (is_number(it))
 					continue;
@@ -218,4 +263,5 @@ namespace ric {
 
 void ric::compile(std::istream &source) {
 	auto tokens = tokenize(source);
+	return;
 }
