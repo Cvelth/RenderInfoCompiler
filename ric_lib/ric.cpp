@@ -62,6 +62,8 @@ const std::set<std::string> reserved {
 	"palette", "color", "object", "primitive"
 };
 
+std::string current_path = "";
+
 #include <map>
 std::map<std::string, std::pair<bool, std::set<std::string>>> library_reserved {
 	std::make_pair("primitives", std::make_pair(false, std::set<std::string>{ "ellipse", "circle", "rectangle", "square" })),
@@ -85,19 +87,28 @@ namespace ric {
 		else
 			throw Exceptions::InnerCompilationError("Unknown use directive.", c, p);
 	}
+	std::list<Token> tokenize(std::string const& path);
+	void include_file(std::list<Token> &tokens, std::string name, size_t c, size_t p = 0) {
+		try {
+			auto included = tokenize(current_path + '/' + name);
+			std::copy(included.begin(), included.end(), std::back_inserter(tokens));
+		} catch (Exceptions::InnerCompilationError &e) {
+			throw Exceptions::CompilationError(e, current_path + '/' + name);
+		}
+	}
 	void include_directive(std::list<Token> &tokens, std::string line, size_t c, size_t p = 0) {
 		std::istringstream s(line);
 		std::string temp;
 		if (s >> temp >> temp >> temp)
 			throw Exceptions::InnerCompilationError("Junk information at the end of #include directive.", c, p);
 
-		if (!temp.empty() && temp.front() == '<' && temp.back() == '>') {
+		if (temp.size() > 2 && temp.front() == '<' && temp.back() == '>') {
 			if (auto lib = library_reserved.find(temp.substr(1, temp.size() - 2)); lib != library_reserved.end())
 				lib->second.first = true;
 			else
 				throw Exceptions::InnerCompilationError("There is no standart library with the name: " + temp.substr(1, temp.size() - 2), c, p + 8);
 		} else if (temp.size() > 2 && temp.front() == '"' && temp.back() == '"') {
-			//Include of the files from the same directory is to be implemented here.
+			include_file(tokens, temp.substr(1, temp.size() - 2), c, p);
 		} else
 			throw Exceptions::InnerCompilationError("Unsupported parameter in #include directive.", c, p);
 	}
@@ -132,7 +143,7 @@ namespace ric {
 				if (line.size() == 0)
 					return;
 			}
-		add_line(tokens, is_commentary, line, c, p_shift);
+			add_line(tokens, is_commentary, line, c, p_shift);
 	}
 
 	bool split_tokens(std::list<Token> &tokens, std::list<Token>::iterator &it, int i) {
@@ -175,7 +186,7 @@ namespace ric {
 		if (reserved.find(it->value) != reserved.end()) {
 			it->type = TokenType::reserved;
 			return true;
-		} else 
+		} else
 			for (auto lib : library_reserved)
 				if (lib.second.first)
 					if (lib.second.second.find(it->value) != lib.second.second.end()) {
@@ -225,11 +236,11 @@ namespace ric {
 			return false;
 		if (s.size() > 10)
 			throw Exceptions::InnerCompilationError("Color literal seems to be broken: " + s + "\n    "
-											   "Literal cannot consist of more than 8 digits.", line, pos);
+													"Literal cannot consist of more than 8 digits.", line, pos);
 		for (int i = 2; i < s.size(); i++)
 			if ((s[i] < '0' || s[i] > '9') && (s[i] < 'A' || s[i] > 'F') && (s[i] < 'a' || s[i] > 'f'))
 				throw Exceptions::InnerCompilationError("Color literal seems to be broken: " + s + "\n    '"
-												   + s[i] + "' is not a valid hex-digit.", line, pos);
+														+ s[i] + "' is not a valid hex-digit.", line, pos);
 		return true;
 	}
 	bool is_color_literal(std::list<Token>::iterator &it) {
@@ -238,8 +249,25 @@ namespace ric {
 			it->type = TokenType::color_literal;
 		return ret;
 	}
+}
 
-	std::list<Token> tokenize(std::istream &source) {
+#include <fstream>
+namespace ric {
+	std::list<Token> tokenize(std::string const& path) {
+		std::ifstream source;
+		source.open(path);
+		if (!source) {
+			throw Exceptions::CompilationError("Unable to open file.", 0, 0, path);
+			exit(1);
+		}
+
+		if (auto pos = path.find_last_of('/'); pos != path.size())
+			current_path = path.substr(0, pos);
+		else if (auto pos = path.find_last_of('\\'); pos != path.size())
+			current_path = path.substr(0, pos);
+		else
+			current_path = "";
+
 		std::list<Token> tokens;
 
 		bool is_commentary = false;
@@ -293,17 +321,11 @@ namespace ric {
 	}
 }
 
-#include <fstream>
 void ric::compile(std::string const& path) {
-	std::ifstream f;
-	f.open(path);
-	if (!f) {
-		throw Exceptions::CompilationError("Unable to open file.", 0, 0, path);
-		exit(1);
-	}
+
 	std::list<ric::Token> tokens;
 	try {
-		tokens = tokenize(f);
+		tokens = tokenize(path);
 	} catch (Exceptions::InnerCompilationError &e) {
 		throw Exceptions::CompilationError(e, path);
 	}
