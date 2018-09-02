@@ -7,6 +7,9 @@
     <ClInclude Include="version.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="shared.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Headers">
@@ -18,6 +21,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ric.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Tokenize.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

@@ -135,10 +135,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ric.hpp" />
+    <ClInclude Include="shared.hpp" />
     <ClInclude Include="version.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ric.cpp" />
+    <ClCompile Include="Tokenize.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
