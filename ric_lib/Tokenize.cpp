@@ -261,6 +261,15 @@ namespace ric {
 				else
 					throw Exceptions::InnerCompilationError("Unknown Token: " + it->value, it->line, it->pos);
 			}
+
+		for (auto it = tokens.begin(); it != tokens.end(); it++)
+			if (it->type == TokenType::block && it->value == "}") {
+				std::pair<size_t, size_t> temp(it->line, it->pos);
+				auto ins = it;
+				if (++ins != tokens.end() && ins->type != TokenType::semicolon)
+					tokens.insert(ins, Token(TokenType::semicolon, "", temp.first, temp.second + 1));
+			}
+
 		return tokens;
 	}
 }
