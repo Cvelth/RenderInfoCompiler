@@ -22,16 +22,28 @@ std::string ric::Exceptions::CompilationError::what() const {
 
 bool ric::use_parameters::double_precision = false;
 
+double ric::number(std::string const& s) {
+	std::istringstream iss(s);
+	double r;
+	iss >> r;
+	return r;
+}
+std::string ric::number(double const& s) {
+	std::ostringstream oss;
+	oss << s;
+	return oss.str();
+}
+
 namespace ric {
 	std::list<Token> tokenize(std::string const& path);
-	Syntax analyze(std::list<Token> const& tokens);
+	Tree analyze(std::list<Token> const& tokens);
 }
 void ric::compile(std::string const& path) {
 	std::list<ric::Token> tokens;
-	Syntax syntax;
+	Tree tree;
 	try {
 		tokens = tokenize(path);
-		syntax = analyze(tokens);
+		tree = analyze(tokens);
 	} catch (Exceptions::InnerCompilationError &e) {
 		throw Exceptions::CompilationError(e, path);
 	}

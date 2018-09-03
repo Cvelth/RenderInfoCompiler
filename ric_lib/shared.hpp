@@ -21,10 +21,13 @@ namespace ric {
 		index,
 		bracket,
 		reserved,
+		datatype,
 		library,
 		identificator,
 		number,
 		color_literal,
+		object,
+		namespace_
 	};
 	struct Token {
 		TokenType type;
@@ -43,6 +46,8 @@ namespace ric {
 		std::shared_ptr<Node> right;
 		Node(TokenType type, std::string const& value, size_t line, size_t pos, std::shared_ptr<Node> left = nullptr, std::shared_ptr<Node> right = nullptr)
 			: Token(type, value, line, pos), left(left), right(right) {}
+		Node(TokenType type, size_t line, size_t pos, std::shared_ptr<Node> left = nullptr, std::shared_ptr<Node> right = nullptr)
+			: Token(type, "", line, pos), left(left), right(right) {}
 		Node(Token const& token, std::shared_ptr<Node> left = nullptr, std::shared_ptr<Node> right = nullptr)
 			: Node(token.type, token.value, token.line, token.pos, left, right) {}
 
@@ -55,19 +60,17 @@ namespace ric {
 	};
 }
 #include <list>
-#include <map>
 namespace ric {
 	enum class DataType {
 		palette, color, object, primitive
 	};
-	struct Syntax {
-		std::shared_ptr<Node> graph;
-		std::map<std::string, std::pair<DataType, std::shared_ptr<Node>>> objects;
-	};
+	using Tree = std::shared_ptr<Node>;
 }
 
 namespace ric {
 	struct use_parameters {
 		static bool double_precision; // = false.
 	};
+	double number(std::string const& s);
+	std::string number(double const& s);
 }
