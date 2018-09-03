@@ -4,7 +4,10 @@
 #include <set>
 const std::set<char> separators{' ', '\t'};
 const std::set<char> s_tokens{';', ',', '{', '}', '[', ']', '(', ')', '/', '*', '+', '-', '='};
-const std::set<std::string> reserved{
+const std::set<std::string> reserved {
+	"virtual", "namespace"
+};
+const std::set<std::string> datatypes {
 	"palette", "color", "object", "primitive"
 };
 
@@ -130,6 +133,9 @@ namespace ric {
 		if (reserved.find(it->value) != reserved.end()) {
 			it->type = TokenType::reserved;
 			return true;
+		} else if (datatypes.find(it->value) != datatypes.end()) {
+			it->type = TokenType::datatype;
+			return true;
 		} else
 			for (auto lib : library_reserved)
 				if (lib.second.first)
@@ -141,12 +147,7 @@ namespace ric {
 	}
 	bool is_number(std::string const& s) {
 		bool has_point = false;
-		if (s.size() == 0 || !(isdigit(s[0]) || s[0] == '+' || s[0] == '-'))
-			if (s[0] == '.')
-				has_point = true;
-			else
-				return false;
-		for (int i = 1; i < s.size(); i++) {
+		for (int i = 0; i < s.size(); i++) {
 			if (s[i] == '.')
 				if (has_point)
 					return false;
