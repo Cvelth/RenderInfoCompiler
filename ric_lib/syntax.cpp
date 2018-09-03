@@ -97,22 +97,28 @@ namespace ric {
 			{
 				t[2]->left = t[0];
 				t[1]->left = t[2];
-				t[1]->right = t[3];
+				t[1]->right = t[3]->right;
 				t[1]->type = TokenType::object;
 				return t[1];
 			}
 		}
 		if (source.size() == 3)
 			if (source.front()->type == TokenType::datatype && source.back()->type == TokenType::block) {
-				auto ret = *++source.begin();
-				ret->left = source.front();
-				ret->right = *--source.end();
-				ret->type = TokenType::object;
-				return ret;
+				if ((*++source.begin())->type == TokenType::identificator) {
+					auto ret = *++source.begin();
+					ret->left = source.front();
+					ret->right = (*--source.end())->right;
+					ret->type = TokenType::object;
+					return ret;
+				} else if ((*++source.begin())->type == TokenType::bracket) {
+					(*++source.begin())->left = source.front();
+					return std::make_shared<Node>(TokenType::object, (*++source.begin())->line, (*++source.begin())->pos,
+												  *++source.begin(), source.back()->right);
+				}
 			} else if (source.front()->type == TokenType::reserved && source.front()->value == "namespace"
 					   && (*++source.begin())->type == TokenType::identificator && source.back()->type == TokenType::block) {
 				auto ret = *++source.begin();
-				ret->right = source.back();
+				ret->right = source.back()->right;
 				ret->type = TokenType::namespace_;
 				return ret;
 			}
