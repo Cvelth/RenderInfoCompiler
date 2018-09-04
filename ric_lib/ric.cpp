@@ -38,7 +38,7 @@ std::string ric::number(double const& s) {
 namespace ric {
 	std::list<Token> tokenize(std::string const& path);
 	Tree analyze(std::list<Token> const& tokens);
-	void generate(std::ofstream &f, Tree tree);
+	void generate(std::ostream &f, Tree tree);
 }
 void ric::compile(std::string const& path) {
 	std::list<ric::Token> tokens;
