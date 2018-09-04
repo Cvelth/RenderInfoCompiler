@@ -139,6 +139,7 @@
     <ClInclude Include="version.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="generate.cpp" />
     <ClCompile Include="ric.cpp" />
     <ClCompile Include="syntax.cpp" />
     <ClCompile Include="tokenize.cpp" />
