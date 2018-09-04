@@ -117,6 +117,5 @@ void compile_file(std::string const& path) {
 		ric::compile(path);
 	} catch (ric::Exceptions::CompilationError &e) {
 		std::cout << e.what();
-		exit(1);
 	}
 }
