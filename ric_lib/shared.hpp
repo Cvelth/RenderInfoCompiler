@@ -74,3 +74,9 @@ namespace ric {
 	double number(std::string const& s);
 	std::string number(double const& s);
 }
+
+#include <set>
+#include <map>
+namespace ric {
+	using Names = std::map<DataType, std::set<std::pair<std::string, Tree>>>;
+}
