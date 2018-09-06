@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <vector>
 
 #define Unimplemented_Feature throw Exceptions::InnerCompilationError("Unimplemented feature", tree->line, tree->pos)
 #define write_i(name, size) write(reinterpret_cast<char*>(&name), size)
@@ -46,13 +47,36 @@ namespace ric {
 	Tree get_name(Names &names, DataType type, Tree tree) {
 		if (tree->type != TokenType::identificator)
 			throw Exceptions::InnerCompilationError("Identificator was expected, but '" + tree->value + "' is found instead.", tree->line, tree->pos);
-		if (auto iterator = std::find_if(names[DataType::color].begin(), names[DataType::color].end(), [&tree](std::pair<std::string, Tree> t) -> bool {
+		if (auto iterator = std::find_if(names[type].begin(), names[type].end(), [&tree](std::pair<std::string, Tree> t) -> bool {
 			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
-		}); iterator != names[DataType::color].end())
+		}); iterator != names[type].end())
 			return iterator->second;
 		else
-			throw Exceptions::InnerCompilationError("'" + tree->value + " is not a color name.", tree->line, tree->pos);
+			throw Exceptions::InnerCompilationError("'" + tree->value + " is not a " + convert(type) + " name.", tree->line, tree->pos);
 	}
+	template <class List>
+	List& parse_with_separator(Tree tree, List &list, TokenType separator) {
+		if (tree) {
+			if (tree->type != separator)
+				list.push_back(tree);
+			else {
+				if (tree->left)
+					parse_with_separator(tree->left, list, separator);
+				if (tree->right)
+					parse_with_separator(tree->right, list, separator);
+			}
+		}
+		return list;
+	}
+	std::list<Tree> parse_with_separator(Tree tree, TokenType separator) {
+		std::list<Tree> ret;
+		return parse_with_separator(tree, ret, separator);
+	}
+	Tree separator_at_index(Tree tree, TokenType separator, size_t index) {
+		std::vector<Tree> ret;
+		return parse_with_separator(tree, ret, separator).at(index);
+	}
+
 	void print_color_value(std::ostream &file, Tree tree, Names &names) {
 		std::string literal;
 		switch (tree->type) {
@@ -62,6 +86,14 @@ namespace ric {
 			case TokenType::identificator:
 				literal = get_name(names, DataType::color, tree)->value.substr(2);
 				break;
+			case TokenType::index:
+			{
+				if (!tree->right || tree->right->type != TokenType::number)
+					throw Exceptions::InnerCompilationError("Only numeric indices are supported.", tree->line, tree->pos);
+				literal = separator_at_index(get_name(names, DataType::palette, tree->left), 
+											 TokenType::comma, size_t(number(tree->right->value)))->value.substr(2);
+				break;
+			}
 			case TokenType::block:
 			case TokenType::bracket:
 				if (!tree->right)
@@ -130,25 +162,8 @@ namespace ric {
 			return false;
 		}
 	}
-	std::list<Tree>& parse_commas(Tree tree, std::list<Tree> &list) {
-		if (tree) {
-			if (tree->type != TokenType::comma)
-				list.push_back(tree);
-			else {
-				if (tree->left)
-					parse_commas(tree->left, list);
-				if (tree->right)
-					parse_commas(tree->right, list);
-			}
-		}
-		return list;
-	}
-	std::list<Tree> parse_commas(Tree tree) {
-		std::list<Tree> ret;
-		return parse_commas(tree, ret);
-	}
 	void print_palette(std::ostream &file, Tree tree, Names &names) {
-		auto list = parse_commas(tree->right);
+		auto list = parse_with_separator(tree->right, TokenType::comma);
 		auto list_size = list.size();
 		if (list_size > std::numeric_limits<uint16_t>::max())
 			throw Exceptions::InnerCompilationError("To many members of the palette. There should be no more than 65535", tree->line, tree->pos);
@@ -157,21 +172,41 @@ namespace ric {
 			switch (it->type) {
 				case TokenType::color_literal:
 				case TokenType::identificator:
-					print_color_value(file, it, names);
-					break;
 				case TokenType::index:
-
-					break;
-				case TokenType::library:
-					//To be implemented. Maybe.
-					break;
 				case TokenType::block:
 				case TokenType::bracket:
-				default: throw Exceptions::InnerCompilationError("Unsupported member of a palette: '" + it->value + "'.", it->line, it->pos);
+					print_color_value(file, it, names);
+					break;
+				case TokenType::library:
+					Unimplemented_Feature;
+					break;
+				default: 
+					throw Exceptions::InnerCompilationError("Unsupported member of a palette: '" + it->value + "'.", it->line, it->pos);
 			}
 		}
 	}
-	bool print_object(std::ostream &file, Tree tree, Names &names) {
+	void print_object(std::ostream &file, Tree tree, Names &names, Tree current_color = nullptr) {
+		if (current_color && current_color->type != TokenType::color_literal)
+			throw Exceptions::InnerCompilationError("Color was expected, but '" + current_color->value + "' is found instead.", current_color->line, current_color->pos);
+		auto list = parse_with_separator(tree->right, TokenType::semicolon);
+		auto list_size = list.size();
+		if (list_size > std::numeric_limits<uint16_t>::max())
+			throw Exceptions::InnerCompilationError("To many members of the object. There should be no more than 65535", tree->line, tree->pos);
+		file.write_i(list_size, 2);
+		for (auto it : list) {
+			switch (it->type) {
+				case TokenType::color_literal:
+					current_color = it;
+					break;
+				case TokenType::library:
+					Unimplemented_Feature;
+					break;
+				default: 
+					throw Exceptions::InnerCompilationError("Unsupported member of an object: '" + it->value + "'.", it->line, it->pos);
+			}
+		}
+	}
+	bool print_objects(std::ostream &file, Tree tree, Names &names) {
 		if (tree->type != TokenType::object)
 			throw Exceptions::InnerCompilationError("Unexpected node:'" + tree->value + "'. object was expected.", tree->line, tree->pos);
 		if (!tree->left)
@@ -212,7 +247,12 @@ namespace ric {
 				break;
 			case DataType::object:
 				if (tree->left->type == TokenType::datatype) {
-					Unimplemented_Feature;
+					names.at(DataType::object).insert(std::make_pair(tree->value, tree->right));
+					if (!tree->left->left || tree->left->left->type != TokenType::reserved || tree->left->left->value != "virtual") {
+						file.write_i(type, 1);
+						file.write_s(tree->value);
+						print_object(file, tree, names);
+					}
 				} else if (tree->left->type == TokenType::index) {
 					if (!tree->left->right || tree->left->right->type != TokenType::identificator)
 						throw Exceptions::InnerCompilationError("Identificator is expected in index-brackets.", tree->left->line, tree->left->pos);
@@ -233,7 +273,7 @@ namespace ric {
 				else
 					break;
 			case TokenType::object:
-				if (print_object(file, tree, names))
+				if (print_objects(file, tree, names))
 					return;
 				else
 					break;
