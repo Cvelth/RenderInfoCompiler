@@ -128,7 +128,7 @@ namespace ric {
 				return source.front();
 			} else if (source.front()->type == TokenType::identificator && source.back()->type == TokenType::index) {
 				source.back()->left = source.front();
-				return source.front();
+				return source.back();
 			} else if (source.front()->type == TokenType::datatype && source.back()->type == TokenType::identificator) {
 				source.back()->left = source.front();
 				source.back()->type = TokenType::object;
