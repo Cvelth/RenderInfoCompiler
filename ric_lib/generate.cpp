@@ -10,6 +10,8 @@
 #define write_s(name) write(name.c_str(), name.size() + 1)
 
 namespace ric {
+	std::string current_namespace;
+
 	DataType convert_to_DataType(Tree tree) {
 		if (tree->type != TokenType::datatype)
 			throw Exceptions::InnerCompilationError("Unexpected node:'" + tree->value + "'. DataType was expected.", tree->line, tree->pos);
@@ -24,39 +26,70 @@ namespace ric {
 		else
 			throw Exceptions::InnerCompilationError("Unsupported DataType.", tree->line, tree->pos);
 	}
-	Names& initialize_names(Names& names) {
+	std::string convert(DataType type) {
+		switch (type) {
+			case DataType::color: return "color";
+			case DataType::palette: return "palette";
+			case DataType::primitive: return "primitive";
+			case DataType::object: return "object";
+			default:
+				throw Exceptions::InnerCompilationError("Unsupported DataType.", -1, -1);
+		}
+	}
+	Names& initialize_names(Names &names) {
 		names.insert(std::make_pair(DataType::color, std::set<std::pair<std::string, Tree>>()));
 		names.insert(std::make_pair(DataType::palette, std::set<std::pair<std::string, Tree>>()));
 		names.insert(std::make_pair(DataType::primitive, std::set<std::pair<std::string, Tree>>()));
 		names.insert(std::make_pair(DataType::object, std::set<std::pair<std::string, Tree>>()));
 		return names;
 	}
+	Tree get_name(Names &names, DataType type, Tree tree) {
+		if (tree->type != TokenType::identificator)
+			throw Exceptions::InnerCompilationError("Identificator was expected, but '" + tree->value + "' is found instead.", tree->line, tree->pos);
+		if (auto iterator = std::find_if(names[DataType::color].begin(), names[DataType::color].end(), [&tree](std::pair<std::string, Tree> t) -> bool {
+			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
+		}); iterator != names[DataType::color].end())
+			return iterator->second;
+		else
+			throw Exceptions::InnerCompilationError("'" + tree->value + " is not a color name.", tree->line, tree->pos);
+	}
 	void print_color_value(std::ostream &file, Tree tree, Names &names) {
-		if (tree->type == TokenType::color_literal) {
-			auto literal = tree->value.substr(2);
-			for (int i = 0; i < 4; i++) {
-				if (literal.size() > 0) {
-					std::string temp;
-					if (auto s = literal.size(); s > 2)
-						temp = literal.substr(s - 2);
-					else
-						temp = literal;
-					std::istringstream iss(temp);
-					uint16_t t;
-					iss >> std::hex >> t;
-					file.write_i(t, 1);
-					if (auto s = literal.size(); s > 2)
-						literal = literal.substr(0, literal.size() - 2);
-					else
-						literal = "";
-				} else {
-					uint8_t t = 0;
-					file.write_i(t, 1);
-				}
+		std::string literal;
+		switch (tree->type) {
+			case TokenType::color_literal:
+				literal = tree->value.substr(2);
+				break;
+			case TokenType::identificator:
+				literal = get_name(names, DataType::color, tree)->value.substr(2);
+				break;
+			case TokenType::block:
+			case TokenType::bracket:
+				if (!tree->right)
+					throw Exceptions::InnerCompilationError("Literal or color name was expected.", tree->right->line, tree->right->pos);
+				return print_color_value(file, tree->right, names);
+			default:
+				throw Exceptions::InnerCompilationError("Color value was expected. '" + tree->value + "' was met instead.", tree->line, tree->pos);
+		}
+		for (int i = 0; i < 4; i++) {
+			if (literal.size() > 0) {
+				std::string temp;
+				if (auto s = literal.size(); s > 2)
+					temp = literal.substr(s - 2);
+				else
+					temp = literal;
+				std::istringstream iss(temp);
+				uint16_t t;
+				iss >> std::hex >> t;
+				file.write_i(t, 1);
+				if (auto s = literal.size(); s > 2)
+					literal = literal.substr(0, literal.size() - 2);
+				else
+					literal = "";
+			} else {
+				uint8_t t = 0;
+				file.write_i(t, 1);
 			}
-		} else
-			throw Exceptions::InnerCompilationError("Color value was expected. '" + tree->value + "' was met instead.", tree->line, tree->pos);
-
+		}
 	}
 	bool print_operator(std::ostream &file, Tree tree, Names &names) {
 		if (tree->type != TokenType::arithmetic)
@@ -72,10 +105,12 @@ namespace ric {
 				throw Exceptions::InnerCompilationError("Object of unknown type was encountered: '" + tree->left->value + "'.", tree->left->line, tree->left->pos);
 			switch (auto type = convert_to_DataType(tree->left->left)) {
 				case DataType::color:
-					file.write_i(type, 1);
-					file.write_s(tree->left->value);
 					names.at(DataType::color).insert(std::make_pair(tree->left->value, tree->right));
-					print_color_value(file, tree->right, names);
+					if (!tree->left->left->left || tree->left->left->left->type != TokenType::reserved || tree->left->left->left->value != "virtual") {
+						file.write_i(type, 1);
+						file.write_s(tree->left->value);
+						print_color_value(file, tree->right, names);
+					}
 					break;
 				case DataType::palette:
 					Unimplemented_Feature;
@@ -121,14 +156,8 @@ namespace ric {
 		for (auto it : list) {
 			switch (it->type) {
 				case TokenType::color_literal:
-					print_color_value(file, it, names);
-					break;
 				case TokenType::identificator:
-					if (auto iterator = std::find_if(names[DataType::color].begin(), names[DataType::color].end(), [&it](std::pair<std::string, Tree> t) -> bool {
-						return t.first == it->value;
-					}); iterator != names[DataType::color].end()) {
-						print_color_value(file, iterator->second, names);
-					}
+					print_color_value(file, it, names);
 					break;
 				case TokenType::index:
 
@@ -141,27 +170,56 @@ namespace ric {
 				default: throw Exceptions::InnerCompilationError("Unsupported member of a palette: '" + it->value + "'.", it->line, it->pos);
 			}
 		}
-
 	}
 	bool print_object(std::ostream &file, Tree tree, Names &names) {
 		if (tree->type != TokenType::object)
 			throw Exceptions::InnerCompilationError("Unexpected node:'" + tree->value + "'. object was expected.", tree->line, tree->pos);
-		if (!tree->left || tree->left->type != TokenType::datatype)
-			throw Exceptions::InnerCompilationError("DataType is expected to the left of '" + tree->value + "'.", tree->line, tree->pos);
-		switch (auto type = convert_to_DataType(tree->left)) {
+		if (!tree->left)
+			throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
+		Tree type_node;
+		if (tree->left->type == TokenType::datatype)
+			type_node = tree->left;
+		else if (tree->left->type == TokenType::index && tree->left->left && tree->left->left->type == TokenType::datatype)
+			type_node = tree->left->left;
+		else
+			throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
+		switch (auto type = convert_to_DataType(type_node)) {
 			case DataType::color:
-				Unimplemented_Feature;
+				if (!tree->right || (tree->right->type != TokenType::color_literal && tree->right->type != TokenType::identificator))
+					if (tree->right->type == TokenType::semicolon)
+						throw Exceptions::InnerCompilationError("Only one color can be used on color initialization.", tree->right->line, tree->right->pos);
+					else
+						throw Exceptions::InnerCompilationError("Color was expected but '" + tree->right->value + " is found instead.", tree->right->line, tree->right->pos);
+				names.at(DataType::color).insert(std::make_pair(tree->value, tree->right));
+				if (!tree->left->left || tree->left->left->type != TokenType::reserved || tree->left->left->value != "virtual") {
+					file.write_i(type, 1);
+					file.write_s(tree->value);
+					print_color_value(file, tree->right, names);
+				}
 				break;
 			case DataType::palette:
-				file.write_i(type, 1);
-				file.write_s(tree->left->value);
-				print_palette(file, tree, names);
+				if (tree->left->type != TokenType::datatype)
+					throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
+				names.at(DataType::palette).insert(std::make_pair(tree->value, tree->right));
+				if (!tree->left->left || tree->left->left->type != TokenType::reserved || tree->left->left->value != "virtual") {
+					file.write_i(type, 1);
+					file.write_s(tree->value);
+					print_palette(file, tree, names);
+				}
 				break;
 			case DataType::primitive:
 				Unimplemented_Feature;
 				break;
 			case DataType::object:
-				Unimplemented_Feature;
+				if (tree->left->type == TokenType::datatype) {
+					Unimplemented_Feature;
+				} else if (tree->left->type == TokenType::index) {
+					if (!tree->left->right || tree->left->right->type != TokenType::identificator)
+						throw Exceptions::InnerCompilationError("Identificator is expected in index-brackets.", tree->left->line, tree->left->pos);
+					auto palette = get_name(names, DataType::palette, tree->left->right);
+					Unimplemented_Feature;
+				} else
+					throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
 				break;
 		}
 		return true;
@@ -179,6 +237,9 @@ namespace ric {
 					return;
 				else
 					break;
+			case TokenType::namespace_:
+				current_namespace = tree->value;
+				return print(file, tree->right, names);
 			default:
 				throw Exceptions::InnerCompilationError("Unknown tree node '" + tree->value + "' was encountered.", tree->line, tree->pos);
 		}
@@ -193,6 +254,7 @@ namespace ric {
 		v = 0;
 		file.write_i(v, 1);
 
+		current_namespace = "";
 		Names names;
 		if (tree) print(file, tree, initialize_names(names));
 	}
