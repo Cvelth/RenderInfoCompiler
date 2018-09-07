@@ -198,6 +198,22 @@ namespace ric {
 				case TokenType::color_literal:
 					current_color = it;
 					break;
+				case TokenType::identificator:
+					current_color = get_name(names, DataType::color, it);
+					break;
+				case TokenType::index:
+				{
+					if (!it->right || it->right->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Only numeric indices are supported.", it->line, it->pos);
+					current_color = separator_at_index(get_name(names, DataType::palette, it->left),
+													   TokenType::comma, size_t(number(it->right->value)));
+					break;
+				}
+				case TokenType::block:
+				case TokenType::bracket:
+					if (!it->right)
+						throw Exceptions::InnerCompilationError("Literal or color name was expected.", it->right->line, it->right->pos);
+					list.push_back(it->right);
 				case TokenType::library:
 					Unimplemented_Feature;
 					break;
