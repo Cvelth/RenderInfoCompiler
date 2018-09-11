@@ -214,6 +214,31 @@ namespace ric {
 					if (!it->right)
 						throw Exceptions::InnerCompilationError("Literal or color name was expected.", it->right->line, it->right->pos);
 					list.push_back(it->right);
+					break;
+				case TokenType::object:
+					if (it->left->type == TokenType::datatype)
+						if (auto type = convert_to_DataType(it->left); type == DataType::color) {
+							names.at(DataType::color).insert(std::make_pair(tree->left->value, tree->right));
+							if (!tree->left->left->left || tree->left->left->left->type != TokenType::reserved || tree->left->left->left->value != "virtual") {
+								file.write_i(type, 1);
+								file.write_s(tree->left->value);
+								print_color_value(file, tree->right, names);
+							}
+						} else
+							throw Exceptions::InnerCompilationError("This DataType is unsupported.", it->left->line, it->left->pos);
+					else if (it->left->type == TokenType::bracket) {
+						if (!it->left->left || it->left->left->type != TokenType::datatype)
+							throw Exceptions::InnerCompilationError("DataType was expected.", it->left->line, it->left->pos);
+						if (auto type = convert_to_DataType(it->left->left); type == DataType::primitive) {
+							if (tree->value)
+							names.at(DataType::primitive).insert(std::make_pair)
+						}
+					} else
+						throw Exceptions::InnerCompilationError("Unsupported object type.", it->left->line, it->left->pos);
+					break;
+				case TokenType::arithmetic:
+
+					break;
 				case TokenType::library:
 					Unimplemented_Feature;
 					break;
