@@ -91,6 +91,134 @@ namespace ric {
 			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a objects variable.", tree->line, tree->pos);
 	}
 
+	Primitive process_library_primitive(Tree tree) {
+		if (!tree || tree->type != TokenType::library)
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a library identificator.", tree->line, tree->pos);
+		auto parameters = parse_with_separator(tree->right, TokenType::comma);
+		if (tree->value == "ellipse") {
+			switch (parameters.size()) {
+				case 0:
+					throw Exceptions::InnerCompilationError("Impossible to call ellipse() withous aspect_ratio parameter.", tree->line, tree->pos);
+				case 1:
+					if (parameters.front()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported aspect_ratio parameter.", tree->line, tree->pos);
+					return library::ellipse(number(parameters.front()->value), false);
+				case 2:
+					if (parameters.front()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported aspect_ratio parameter.", tree->line, tree->pos);
+					if (parameters.back()->type == TokenType::number)
+						return library::ellipse(number(parameters.front()->value), false, size_t(number(parameters.back()->value)));
+					else if (parameters.back()->type == TokenType::identificator && parameters.back()->value == "filled")
+						return library::ellipse(number(parameters.front()->value), true);
+					else
+						throw Exceptions::InnerCompilationError("Unsupported parameters.", tree->line, tree->pos);
+				case 3:
+					if (parameters.front()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported aspect_ratio parameter.", tree->line, tree->pos);
+					if (parameters.back()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported last parameter.", tree->line, tree->pos);
+					if ((*(++parameters.begin()))->type == TokenType::number)
+						return library::ellipse(number(parameters.front()->value), false, size_t(number((*(++parameters.begin()))->value)), size_t(number(parameters.back()->value)));
+					else if ((*(++parameters.begin()))->type == TokenType::identificator && (*(++parameters.begin()))->value == "filled")
+						return library::ellipse(number(parameters.front()->value), true, size_t(number(parameters.back()->value)));
+					else
+						throw Exceptions::InnerCompilationError("Unsupported parameters.", tree->line, tree->pos);
+				case 4:
+					if (parameters.front()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported aspect_ratio parameter.", tree->line, tree->pos);
+					if ((*(++parameters.begin()))->type != TokenType::identificator || (*(++parameters.begin()))->value != "filled")
+						throw Exceptions::InnerCompilationError("Unsupported is_filled parameter.", tree->line, tree->pos);
+					if ((*(++++parameters.begin()))->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported points parameter.", tree->line, tree->pos);
+					if (parameters.back()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported numbers_per_vertex parameter.", tree->line, tree->pos);
+					return library::ellipse(number(parameters.front()->value), true, size_t(number((*(++parameters.begin()))->value)), size_t(number(parameters.back()->value)));
+				default:
+					throw Exceptions::InnerCompilationError("Too many parameters in ellipse() call.", tree->line, tree->pos);
+			}
+		} else if (tree->value == "circle") {
+			switch (parameters.size()) {
+				case 0:
+					return library::circle(false);
+				case 1:
+					if (parameters.back()->type == TokenType::number)
+						return library::circle(false, size_t(number(parameters.back()->value)));
+					else if (parameters.back()->type == TokenType::identificator && parameters.back()->value == "filled")
+						return library::circle(true);
+					else
+						throw Exceptions::InnerCompilationError("Unsupported parameters.", tree->line, tree->pos);
+				case 2:
+					if (parameters.back()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported last parameter.", tree->line, tree->pos);
+					if (parameters.front()->type == TokenType::number)
+						return library::circle(false, size_t(number(parameters.front()->value)), size_t(number(parameters.back()->value)));
+					else if (parameters.front()->type == TokenType::identificator && parameters.front()->value == "filled")
+						return library::circle(true, size_t(number(parameters.back()->value)));
+					else
+						throw Exceptions::InnerCompilationError("Unsupported parameters.", tree->line, tree->pos);
+				case 3:
+					if (parameters.front()->type != TokenType::identificator || (*(++parameters.begin()))->value != "filled")
+						throw Exceptions::InnerCompilationError("Unsupported is_filled parameter.", tree->line, tree->pos);
+					if ((*(++parameters.begin()))->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported points parameter.", tree->line, tree->pos);
+					if (parameters.back()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported numbers_per_vertex parameter.", tree->line, tree->pos);
+					return library::circle(true, size_t(number((*(++parameters.begin()))->value)), size_t(number(parameters.back()->value)));
+				default:
+					throw Exceptions::InnerCompilationError("Too many parameters in circle() call.", tree->line, tree->pos);
+			}
+		} else if (tree->value == "rectangle") {
+			switch (parameters.size()) {
+				case 0:
+					throw Exceptions::InnerCompilationError("Impossible to call rectangle() withous aspect_ratio parameter.", tree->line, tree->pos);
+				case 1:
+					if (parameters.front()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported aspect_ratio parameter.", tree->line, tree->pos);
+					return library::rectangle(number(parameters.front()->value), false);
+				case 2:
+					if (parameters.front()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported aspect_ratio parameter.", tree->line, tree->pos);
+					if (parameters.back()->type == TokenType::number)
+						return library::rectangle(number(parameters.front()->value), false, size_t(number(parameters.back()->value)));
+					else if (parameters.back()->type == TokenType::identificator && parameters.back()->value == "filled")
+						return library::rectangle(number(parameters.front()->value), true);
+					else
+						throw Exceptions::InnerCompilationError("Unsupported parameters.", tree->line, tree->pos);
+				case 3:
+					if (parameters.front()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported aspect_ratio parameter.", tree->line, tree->pos);
+					if ((*(++parameters.begin()))->type != TokenType::identificator || (*(++parameters.begin()))->value != "filled")
+						throw Exceptions::InnerCompilationError("Unsupported is_filled parameter.", tree->line, tree->pos);
+					if (parameters.back()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported numbers_per_vertex parameter.", tree->line, tree->pos);
+					return library::rectangle(number(parameters.front()->value), true, size_t(number(parameters.back()->value)));
+				default:
+					throw Exceptions::InnerCompilationError("Too many parameters in rectangle() call.", tree->line, tree->pos);
+			}
+		} else if (tree->value == "square") {
+			switch (parameters.size()) {
+				case 0:
+					return library::square(false);
+				case 1:
+					if (parameters.back()->type == TokenType::number)
+						return library::square(false, size_t(number(parameters.back()->value)));
+					else if (parameters.back()->type == TokenType::identificator && parameters.back()->value == "filled")
+						return library::square(true);
+					else
+						throw Exceptions::InnerCompilationError("Unsupported parameters.", tree->line, tree->pos);
+				case 3:
+					if (parameters.front()->type != TokenType::identificator || (*(++parameters.begin()))->value != "filled")
+						throw Exceptions::InnerCompilationError("Unsupported is_filled parameter.", tree->line, tree->pos);
+					if (parameters.back()->type != TokenType::number)
+						throw Exceptions::InnerCompilationError("Unsupported numbers_per_vertex parameter.", tree->line, tree->pos);
+					return library::square(true, size_t(number(parameters.back()->value)));
+				default:
+					throw Exceptions::InnerCompilationError("Too many parameters in square() call.", tree->line, tree->pos);
+			}
+		} else
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' cannot be used here.", tree->line, tree->pos);
+	}
+
 	Color process_color(Tree tree, ObjectFile &file, bool is_virtual = false) {
 		if (!tree)
 			throw Exceptions::InnerCompilationError("Color cannot be empty.", tree->line, tree->pos);
@@ -313,7 +441,8 @@ namespace ric {
 						throw Exceptions::InnerCompilationError("Operator" + it->value + " is not expected here.", it->line, it->pos);
 					break;
 				case TokenType::library:
-					Unimplemented_Feature;
+					ret.primitive(process_library_primitive(it));
+					break;
 
 				case TokenType::comma:
 					throw Exceptions::InnerCompilationError("Comma is not expected here.", tree->line, tree->pos);
