@@ -1,9 +1,181 @@
 #include "shared.hpp"
 #include "ric.hpp"
+#include <algorithm>
+#include <sstream>
+#define Unimplemented_Feature throw Exceptions::InnerCompilationError("The feature is not implemented.", tree->line, tree->pos)
 namespace ric {
 	std::string current_namespace;
 
-	void process_operator_node(Tree tree, ObjectFile &file) {}
+	DataType convert_to_DataType(Tree tree) {
+		if (tree->type != TokenType::datatype)
+			throw Exceptions::InnerCompilationError("Unexpected node:'" + tree->value + "'. DataType was expected.", tree->line, tree->pos);
+		if (tree->value == "color")
+			return DataType::color;
+		else if (tree->value == "palette")
+			return DataType::palette;
+		else if (tree->value == "primitive")
+			return DataType::primitive;
+		else if (tree->value == "object")
+			return DataType::object;
+		else
+			throw Exceptions::InnerCompilationError("Unsupported DataType.", tree->line, tree->pos);
+	}
+	std::string convert(DataType type) {
+		switch (type) {
+			case DataType::color: return "color";
+			case DataType::palette: return "palette";
+			case DataType::primitive: return "primitive";
+			case DataType::object: return "object";
+			default:
+				throw Exceptions::InnerCompilationError("Unsupported DataType.", -1, -1);
+		}
+	}
+
+	Color get_color(Tree tree, ObjectFile &file) {
+		if (tree->type != TokenType::identificator)
+			throw Exceptions::InnerCompilationError(tree->value + " is not a valid identificator.", tree->line, tree->pos);
+		if (auto iterator = std::find_if(file.colors.begin(), file.colors.end(), [&tree](std::pair<std::string, Color> t) -> bool {
+			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
+		}); iterator != file.colors.end())
+			return iterator->second;
+		else
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a color variable.", tree->line, tree->pos);
+	}
+	Palette get_palette(Tree tree, ObjectFile &file) {
+		if (tree->type != TokenType::identificator)
+			throw Exceptions::InnerCompilationError(tree->value + " is not a valid identificator.", tree->line, tree->pos);
+		if (auto iterator = std::find_if(file.palettes.begin(), file.palettes.end(), [&tree](std::pair<std::string, Palette> t) -> bool {
+			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
+		}); iterator != file.palettes.end())
+			return iterator->second;
+		else
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a palette variable.", tree->line, tree->pos);
+	}
+	Primitive get_primitive(Tree tree, ObjectFile &file) {
+		if (tree->type != TokenType::identificator)
+			throw Exceptions::InnerCompilationError(tree->value + " is not a valid identificator.", tree->line, tree->pos);
+		if (auto iterator = std::find_if(file.primitives.begin(), file.primitives.end(), [&tree](std::pair<std::string, Primitive> t) -> bool {
+			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
+		}); iterator != file.primitives.end())
+			return iterator->second;
+		else
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a primitive variable.", tree->line, tree->pos);
+	}
+	Object get_object(Tree tree, ObjectFile &file) {
+		if (tree->type != TokenType::identificator)
+			throw Exceptions::InnerCompilationError(tree->value + " is not a valid identificator.", tree->line, tree->pos);
+		if (auto iterator = std::find_if(file.objects.begin(), file.objects.end(), [&tree](std::pair<std::string, Object> t) -> bool {
+			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
+		}); iterator != file.objects.end())
+			return iterator->second;
+		else
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a objects variable.", tree->line, tree->pos);
+	}
+
+	Color process_color_node(Tree tree, ObjectFile &file) {
+		if (!tree)
+			throw Exceptions::InnerCompilationError("Color cannot be empty.", tree->line, tree->pos);
+
+		switch (tree->type) {
+			case TokenType::identificator:
+				return get_color(tree, file);
+			case TokenType::index:
+				if (!tree->right || tree->right->type != TokenType::number)
+					throw Exceptions::InnerCompilationError("Only numeric indices are supported.", tree->line, tree->pos);
+				if (auto index = number(tree->right->value); index == size_t(index))
+					return get_palette(tree->left, file)->at(size_t(index));
+				else
+					throw Exceptions::InnerCompilationError("Index should be an unsigned integer.", tree->line, tree->pos);
+			case TokenType::block:
+			case TokenType::bracket:
+				if (!tree->right)
+					throw Exceptions::InnerCompilationError("Literal or color name was expected.", tree->right->line, tree->right->pos);
+				return process_color_node(tree->right, file);
+
+			case TokenType::color_literal: {
+				Color ret;
+				std::string literal = tree->value.substr(2);
+				for (int i = 0; i < 4; i++) {
+					if (literal.size() > 0) {
+						std::string temp;
+						if (auto s = literal.size(); s > 2)
+							temp = literal.substr(s - 2);
+						else
+							temp = literal;
+						std::istringstream iss(temp);
+						uint16_t t;
+						iss >> std::hex >> t;
+						ret[i] = t;
+						if (auto s = literal.size(); s > 2)
+							literal = literal.substr(0, literal.size() - 2);
+						else
+							literal = "";
+					} else
+						ret[i] = 0;
+				}
+				return ret;
+			}
+
+			case TokenType::comma:
+				throw Exceptions::InnerCompilationError("Comma is not expected here.", tree->line, tree->pos);
+			case TokenType::reserved:
+				throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+			case TokenType::datatype:
+				throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+			case TokenType::library:
+				throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+			case TokenType::number:
+				throw Exceptions::InnerCompilationError("Number " + tree->value + " is not expected here.", tree->line, tree->pos);
+			case TokenType::semicolon:
+				throw Exceptions::InnerCompilationError("Semicolon is not expected here.", tree->line, tree->pos);
+			case TokenType::arithmetic:
+				throw Exceptions::InnerCompilationError("Operator '" + tree->value + "' is not expected here.", tree->line, tree->pos);
+			case TokenType::object:
+				throw Exceptions::InnerCompilationError("Object is not expected here.", tree->line, tree->pos);
+			case TokenType::namespace_:
+				throw Exceptions::InnerCompilationError("Namespace is not expected here.", tree->line, tree->pos);
+			case TokenType::unknown:
+			default:
+				throw Exceptions::InnerCompilationError("Unknown tree node '" + tree->value + "' was encountered.", tree->line, tree->pos);
+		}
+	}
+
+	void process_operator_node(Tree tree, ObjectFile &file) {
+		if (tree->type != TokenType::arithmetic)
+			throw Exceptions::InnerCompilationError(tree->value + " was found instead of an operator.", tree->line, tree->pos);
+		if (tree->value.size() != 1u)
+			throw Exceptions::InnerCompilationError("Operator " + tree->value + " is not supported.", tree->line, tree->pos);
+		switch (tree->value[0]) {
+			case '=':
+				if (!tree->left)
+					throw Exceptions::InnerCompilationError("There's nothing to the left side of operator=.", tree->line, tree->pos);
+				if (!tree->right)
+					throw Exceptions::InnerCompilationError("There's nothing to the right side of operator=.", tree->line, tree->pos);
+				if (tree->left->type != TokenType::object)
+					throw Exceptions::InnerCompilationError(tree->value + " was found to the left side of operator= instead of lvalue.", tree->left->line, tree->left->pos);
+				if (!tree->left->left)
+					throw Exceptions::InnerCompilationError("Object type is unsupported: '" + tree->left->value + "'.", tree->left->line, tree->left->pos);
+				switch (auto type = convert_to_DataType(tree->left->left)) {
+					case DataType::color:
+						file.colors.insert(std::make_pair(tree->left->value, process_color_node(tree->right, file)));
+						break;
+					case DataType::palette:
+					case DataType::primitive:
+					case DataType::object:
+						Unimplemented_Feature;
+					default:
+						throw Exceptions::InnerCompilationError("Unsupported object type.", tree->left->left->line, tree->left->left->pos);
+				}
+				break;
+			case '+':
+			case '-':
+			case '*':
+			case '/':
+				Unimplemented_Feature;
+			default:
+				throw Exceptions::InnerCompilationError("Operator " + tree->value + " is not supported.", tree->line, tree->pos);
+		}
+	}
 	void process_object_node(Tree tree, ObjectFile &file) {}
 
 	void process_tree_node_type(Tree tree, ObjectFile &file) {
@@ -55,6 +227,7 @@ namespace ric {
 		current_namespace = "";
 		ObjectFile file;
 		process_tree_node_type(tree, file);
+		return file;
 	}
 	void generate(std::ostream &file, Tree tree) {
 		auto file_data = generate_object_file(tree);
