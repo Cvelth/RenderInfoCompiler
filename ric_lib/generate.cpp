@@ -72,7 +72,7 @@ namespace ric {
 			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a objects variable.", tree->line, tree->pos);
 	}
 
-	Color process_color_node(Tree tree, ObjectFile &file) {
+	Color process_color(Tree tree, ObjectFile &file, bool is_virtual = false) {
 		if (!tree)
 			throw Exceptions::InnerCompilationError("Color cannot be empty.", tree->line, tree->pos);
 
@@ -90,10 +90,10 @@ namespace ric {
 			case TokenType::bracket:
 				if (!tree->right)
 					throw Exceptions::InnerCompilationError("Literal or color name was expected.", tree->right->line, tree->right->pos);
-				return process_color_node(tree->right, file);
+				return process_color(tree->right, file);
 
 			case TokenType::color_literal: {
-				Color ret;
+				Color ret(is_virtual);
 				std::string literal = tree->value.substr(2);
 				for (int i = 0; i < 4; i++) {
 					if (literal.size() > 0) {
@@ -105,7 +105,7 @@ namespace ric {
 						std::istringstream iss(temp);
 						uint16_t t;
 						iss >> std::hex >> t;
-						ret[i] = t;
+						ret[i] = uint8_t(t);
 						if (auto s = literal.size(); s > 2)
 							literal = literal.substr(0, literal.size() - 2);
 						else
@@ -153,11 +153,16 @@ namespace ric {
 					throw Exceptions::InnerCompilationError("There's nothing to the right side of operator=.", tree->line, tree->pos);
 				if (tree->left->type != TokenType::object)
 					throw Exceptions::InnerCompilationError(tree->value + " was found to the left side of operator= instead of lvalue.", tree->left->line, tree->left->pos);
+				if (tree->left->left->type != TokenType::datatype)
+					throw Exceptions::InnerCompilationError(tree->value + " was found to the left side of operator= instead of datatype.", tree->left->line, tree->left->pos);
 				if (!tree->left->left)
 					throw Exceptions::InnerCompilationError("Object type is unsupported: '" + tree->left->value + "'.", tree->left->line, tree->left->pos);
 				switch (auto type = convert_to_DataType(tree->left->left)) {
 					case DataType::color:
-						file.colors.insert(std::make_pair(tree->left->value, process_color_node(tree->right, file)));
+						file.colors.insert(std::make_pair(tree->left->value, process_color(tree->right, file, 
+																								tree->left->left->left 
+																								&& tree->left->left->left->type == TokenType::reserved 
+																								&& tree->left->left->left->value == "virtual")));
 						break;
 					case DataType::palette:
 					case DataType::primitive:
@@ -176,7 +181,37 @@ namespace ric {
 				throw Exceptions::InnerCompilationError("Operator " + tree->value + " is not supported.", tree->line, tree->pos);
 		}
 	}
-	void process_object_node(Tree tree, ObjectFile &file) {}
+	void process_object_node(Tree tree, ObjectFile &file) {
+		if (tree->type != TokenType::object)
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is found instead of an object.", tree->line, tree->pos);
+		if (!tree->left)
+			throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
+		Tree type_node;
+		if (tree->left->type == TokenType::datatype)
+			type_node = tree->left;
+		else if (tree->left->type == TokenType::index && tree->left->left && tree->left->left->type == TokenType::datatype)
+			type_node = tree->left->left;
+		else
+			throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
+
+		switch (auto type = convert_to_DataType(type_node)) {
+			case DataType::color:
+				if (!tree->right || (tree->right->type != TokenType::color_literal && tree->right->type != TokenType::identificator && tree->right->type != TokenType::index))
+					if (tree->right->type == TokenType::semicolon)
+						throw Exceptions::InnerCompilationError("Only one color can be used on color initialization.", tree->right->line, tree->right->pos);
+					else
+						throw Exceptions::InnerCompilationError("Color was expected but '" + tree->right->value + " is found instead.", tree->right->line, tree->right->pos);
+				file.colors.insert(std::make_pair(tree->value, process_color(tree->right, file,
+																				  tree->left->left
+																				  && tree->left->left->type == TokenType::reserved
+																				  && tree->left->left->value == "virtual")));
+				break;
+			case DataType::palette:
+			case DataType::primitive:
+			case DataType::object:
+				Unimplemented_Feature;
+		}
+	}
 
 	void process_tree_node_type(Tree tree, ObjectFile &file) {
 		if (!tree)
