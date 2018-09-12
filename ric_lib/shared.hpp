@@ -93,13 +93,13 @@ namespace ric {
 		uint8_t* operator*() { return data; }
 		uint8_t const& operator[](size_t index) const { return data[index]; }
 		uint8_t& operator[](size_t index) { return data[index]; }
-		uint8_t const& r() const { return data[0]; }
+		uint8_t const& b() const { return data[0]; }
 		uint8_t const& g() const { return data[1]; }
-		uint8_t const& b() const { return data[2]; }
+		uint8_t const& r() const { return data[2]; }
 		uint8_t const& a() const { return data[3]; }
-		uint8_t& r() { return data[0]; }
+		uint8_t& b() { return data[0]; }
 		uint8_t& g() { return data[1]; }
-		uint8_t& b() { return data[2]; }
+		uint8_t& r() { return data[2]; }
 		uint8_t& a() { return data[3]; }
 	};
 	struct Palette : public AbstactObject {
@@ -107,8 +107,8 @@ namespace ric {
 		using AbstactObject::AbstactObject;
 		auto const& operator*() const { return data; }
 		auto& operator*() { return data; }
-		auto const& operator->() const { return data; }
-		auto& operator->() { return data; }
+		auto const* operator->() const { return &data; }
+		auto* operator->() { return &data; }
 	};
 
 	enum class primitive_type {
@@ -146,6 +146,7 @@ namespace ric {
 	struct ObjectFile {
 		std::map<std::string, Color> colors;
 		std::map<std::string, Palette> palettes;
+		std::map<std::string, Primitive> primitives;
 		std::map<std::string, Object> objects;
 	};
 }
