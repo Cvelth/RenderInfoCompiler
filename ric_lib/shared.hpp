@@ -9,6 +9,11 @@ namespace ric::Exceptions {
 		InnerCompilationError(std::string const& error, size_t line, size_t pos)
 			: error(error), line(line), pos(pos) {}
 	};
+	class LibraryCompilationError {
+	public:
+		std::string error;
+		LibraryCompilationError(std::string const& error) : error(error) {}
+	};
 }
 #include <list>
 namespace ric {
