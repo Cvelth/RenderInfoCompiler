@@ -228,9 +228,11 @@ namespace ric {
 		}
 		return ret;
 	}
-	Object process_object(Tree tree, ObjectFile &file, bool is_virtual = false) {
+	Object process_object(Tree tree, ObjectFile &file, bool is_virtual = false, Color *default_color = nullptr) {
 		auto list = parse_with_separator(tree, TokenType::semicolon);
 		Object ret(is_virtual);
+		if (default_color)
+			ret.color(default_color);
 		for (auto it : list) {
 			switch (it->type) {
 				case TokenType::identificator:
@@ -385,9 +387,22 @@ namespace ric {
 																				   && type_node->left->type == TokenType::reserved
 																				   && type_node->left->value == "virtual")));
 				} else if (tree->left->type == TokenType::index) {
-					Unimplemented_Feature;
+					if (!tree->left->right || tree->left->right->type != TokenType::identificator)
+						throw Exceptions::InnerCompilationError("Palette name is expected inside index brackets on object creation.", tree->line, tree->pos);
+					Palette palette = get_palette(tree->left->right, file);
+					size_t counter = 0;
+					for (auto color : *palette)
+						file.objects.insert(std::make_pair(tree->value + "[" + number(double(counter++)) + "]", 
+														   process_object(tree->right, file,
+																		  type_node->left
+																		  && type_node->left->type == TokenType::reserved
+																		  && type_node->left->value == "virtual",
+																		  &color)));
 				} else
 					throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
+				break;
+			default:
+				throw Exceptions::InnerCompilationError("Unsupported datatype.", tree->line, tree->pos);
 		}
 	}
 
