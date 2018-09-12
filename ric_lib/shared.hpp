@@ -88,7 +88,7 @@ namespace ric {
 	};
 	struct Color : public AbstactObject {
 		uint8_t data[4];
-		Color(uint8_t r = 0, uint8_t g = 0, uint8_t b = 0, uint8_t a = 1, bool is_virtual = false) : data{r,g,b,a}, AbstactObject(is_virtual) {}
+		Color(bool is_virtual = false, uint8_t r = 0, uint8_t g = 0, uint8_t b = 0, uint8_t a = 1) : data{r,g,b,a}, AbstactObject(is_virtual) {}
 		uint8_t const* operator*() const { return data; }
 		uint8_t* operator*() { return data; }
 		uint8_t const& operator[](size_t index) const { return data[index]; }
