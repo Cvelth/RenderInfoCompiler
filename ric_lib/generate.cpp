@@ -52,7 +52,7 @@ namespace ric {
 
 	Color get_color(Tree tree, ObjectFile &file) {
 		if (tree->type != TokenType::identificator)
-			throw Exceptions::InnerCompilationError(tree->value + " is not a valid identificator.", tree->line, tree->pos);
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a valid identificator.", tree->line, tree->pos);
 		if (auto iterator = std::find_if(file.colors.begin(), file.colors.end(), [&tree](std::pair<std::string, Color> t) -> bool {
 			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
 		}); iterator != file.colors.end())
@@ -62,7 +62,7 @@ namespace ric {
 	}
 	Palette get_palette(Tree tree, ObjectFile &file) {
 		if (tree->type != TokenType::identificator)
-			throw Exceptions::InnerCompilationError(tree->value + " is not a valid identificator.", tree->line, tree->pos);
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a valid identificator.", tree->line, tree->pos);
 		if (auto iterator = std::find_if(file.palettes.begin(), file.palettes.end(), [&tree](std::pair<std::string, Palette> t) -> bool {
 			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
 		}); iterator != file.palettes.end())
@@ -72,7 +72,7 @@ namespace ric {
 	}
 	Primitive get_primitive(Tree tree, ObjectFile &file) {
 		if (tree->type != TokenType::identificator)
-			throw Exceptions::InnerCompilationError(tree->value + " is not a valid identificator.", tree->line, tree->pos);
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a valid identificator.", tree->line, tree->pos);
 		if (auto iterator = std::find_if(file.primitives.begin(), file.primitives.end(), [&tree](std::pair<std::string, Primitive> t) -> bool {
 			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
 		}); iterator != file.primitives.end())
@@ -82,7 +82,7 @@ namespace ric {
 	}
 	Object get_object(Tree tree, ObjectFile &file) {
 		if (tree->type != TokenType::identificator)
-			throw Exceptions::InnerCompilationError(tree->value + " is not a valid identificator.", tree->line, tree->pos);
+			throw Exceptions::InnerCompilationError("'" + tree->value + "' is not a valid identificator.", tree->line, tree->pos);
 		if (auto iterator = std::find_if(file.objects.begin(), file.objects.end(), [&tree](std::pair<std::string, Object> t) -> bool {
 			return t.first == tree->value || t.first == current_namespace + "::" + tree->value;
 		}); iterator != file.objects.end())
@@ -228,6 +228,115 @@ namespace ric {
 		}
 		return ret;
 	}
+	Object process_object(Tree tree, ObjectFile &file, bool is_virtual = false) {
+		auto list = parse_with_separator(tree, TokenType::semicolon);
+		Object ret(is_virtual);
+		for (auto it : list) {
+			switch (it->type) {
+				case TokenType::identificator:
+					try {
+						ret.color(get_color(it, file));
+						break;
+					} catch (Exceptions::InnerCompilationError&) {}
+					try {
+						ret.primitive(get_primitive(it, file));
+						break;
+					} catch (Exceptions::InnerCompilationError&) {}
+					try {
+						Object object = get_object(it, file);
+						for (auto it : *object) {
+							ret.color(object[it.first]);
+							ret.primitive(it.second);
+						}
+						break;
+					} catch (Exceptions::InnerCompilationError&) {}
+					throw Exceptions::InnerCompilationError("Unsupported indentificator: '" + it->value + "'.", it->line, it->pos);
+				case TokenType::index:
+				case TokenType::color_literal:
+					ret.color(process_color(it, file, true));
+					break;
+				case TokenType::object: {
+					if (!it->left)
+						throw Exceptions::InnerCompilationError("Datatype expected to the left of '" + it->value + "'.", it->line, it->pos);
+					Tree type_node;
+					if (it->left->type == TokenType::datatype)
+						type_node = it->left;
+					else if ((it->left->type == TokenType::index || it->left->type == TokenType::bracket)
+							 && it->left->left && it->left->left->type == TokenType::datatype)
+						type_node = it->left->left;
+					else
+						throw Exceptions::InnerCompilationError("DataType is expected before '" + it->value + "'.", it->line, it->pos);
+
+					switch (auto type = convert_to_DataType(type_node)) {
+						case DataType::color:
+							ret.color(process_color(it->right, file, true));
+							break;
+						case DataType::primitive:
+							ret.primitive(process_primitive(it->right, file, it->left->right));
+							break;
+						case DataType::object:
+							Unimplemented_Feature;
+						case DataType::palette:
+							throw Exceptions::InnerCompilationError("Palette objects cannot be placed inside other objects.", tree->left->line, tree->left->pos);
+						default:
+							throw Exceptions::InnerCompilationError("Unsupported object type.", tree->left->line, tree->left->pos);
+					}
+					break;
+				}
+
+				case TokenType::arithmetic:
+					if (it->value == "=") {
+						if (!it->left)
+							throw Exceptions::InnerCompilationError("There's nothing to the left side of operator=.", it->line, it->pos);
+						if (!it->right)
+							throw Exceptions::InnerCompilationError("There's nothing to the right side of operator=.", it->line, it->pos);
+						if (it->left->type != TokenType::object)
+							throw Exceptions::InnerCompilationError(it->value + " was found to the left side of operator= instead of lvalue.", it->left->line, it->left->pos);
+						if (it->left->left->type != TokenType::datatype)
+							throw Exceptions::InnerCompilationError(it->value + " was found to the left side of operator= instead of datatype.", it->left->line, it->left->pos);
+						if (!it->left->left)
+							throw Exceptions::InnerCompilationError("Object type is unsupported: '" + it->left->value + "'.", it->left->line, it->left->pos);
+						switch (auto type = convert_to_DataType(it->left->left)) {
+							case DataType::color:
+								ret.color(process_color(it->right, file, true));
+								break;
+							case DataType::palette:
+							case DataType::primitive:
+							case DataType::object:
+								Unimplemented_Feature;
+							default:
+								throw Exceptions::InnerCompilationError("Unsupported object type.", it->left->left->line, it->left->left->pos);
+						}
+					} else
+						throw Exceptions::InnerCompilationError("Operator" + it->value + " is not expected here.", it->line, it->pos);
+					break;
+				case TokenType::library:
+					Unimplemented_Feature;
+
+				case TokenType::comma:
+					throw Exceptions::InnerCompilationError("Comma is not expected here.", tree->line, tree->pos);
+				case TokenType::reserved:
+					throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+				case TokenType::datatype:
+					throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+				case TokenType::number:
+					throw Exceptions::InnerCompilationError("Number " + tree->value + " is not expected here.", tree->line, tree->pos);
+				case TokenType::semicolon:
+					throw Exceptions::InnerCompilationError("Semicolon is not expected here.", tree->line, tree->pos);
+				case TokenType::namespace_:
+					throw Exceptions::InnerCompilationError("Namespace is not expected here.", tree->line, tree->pos);
+				case TokenType::block:
+					throw Exceptions::InnerCompilationError("{}-block is not expected here.", tree->line, tree->pos);
+				case TokenType::bracket:
+					throw Exceptions::InnerCompilationError("()-block is not expected here.", tree->line, tree->pos);
+
+				case TokenType::unknown:
+				default:
+					throw Exceptions::InnerCompilationError("Unsupported member of an object: '" + it->value + "'.", it->line, it->pos);
+			}
+		}
+		return ret;
+	}
 
 	void process_object_node(Tree tree, ObjectFile &file) {
 		if (tree->type != TokenType::object)
@@ -251,17 +360,17 @@ namespace ric {
 					else
 						throw Exceptions::InnerCompilationError("Color was expected but '" + tree->right->value + " is found instead.", tree->right->line, tree->right->pos);
 				file.colors.insert(std::make_pair(tree->value, process_color(tree->right, file,
-																			 tree->left->left
-																			 && tree->left->left->type == TokenType::reserved
-																			 && tree->left->left->value == "virtual")));
+																			 type_node->left
+																			 && type_node->left->type == TokenType::reserved
+																			 && type_node->left->value == "virtual")));
 				break;
 			case DataType::palette:
 				if (tree->left->type != TokenType::datatype)
 					throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
 				file.palettes.insert(std::make_pair(tree->value, process_palette(tree->right, file,
-																			     tree->left->left
-																			     && tree->left->left->type == TokenType::reserved
-																			     && tree->left->left->value == "virtual")));
+																				 type_node->left
+																			     && type_node->left->type == TokenType::reserved
+																			     && type_node->left->value == "virtual")));
 				break;
 			case DataType::primitive:
 				if (tree->value == "")
@@ -270,7 +379,15 @@ namespace ric {
 																					 tree->left->right)));
 				break;
 			case DataType::object:
-				Unimplemented_Feature;
+				if (tree->left->type == TokenType::datatype) {
+					file.objects.insert(std::make_pair(tree->value, process_object(tree->right, file,
+																				   type_node->left
+																				   && type_node->left->type == TokenType::reserved
+																				   && type_node->left->value == "virtual")));
+				} else if (tree->left->type == TokenType::index) {
+					Unimplemented_Feature;
+				} else
+					throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
 		}
 	}
 
@@ -313,7 +430,7 @@ namespace ric {
 							throw Exceptions::InnerCompilationError("Unsupported object type.", tree->left->left->line, tree->left->left->pos);
 					}
 				} else
-					throw Exceptions::InnerCompilationError("Operator" + tree->value + " is now expected here.", tree->line, tree->pos);
+					throw Exceptions::InnerCompilationError("Operator" + tree->value + " is not expected here.", tree->line, tree->pos);
 				break;
 			case TokenType::object:
 				process_object_node(tree, file);
