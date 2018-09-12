@@ -112,19 +112,19 @@ namespace ric {
 	};
 
 	enum class primitive_type {
-		points, lines, line_strip, line_loop, triangles, triangle_strip, triangle_fan, quads, quad_strip, polygons
+		points, lines, line_strip, line_loop, triangles, triangle_strip, triangle_fan, quads, quad_strip, polygon
 	};
-	primitive_type convert_to_primitive_type(std::string const&);
+	primitive_type convert_to_primitive_type(Tree tree);
 	uint8_t convert(primitive_type const&);
 	struct Primitive : public AbstactObject {
 		primitive_type type;
 		size_t vertices_per_instance;
 		std::vector<double> data;
-		Primitive(primitive_type type, size_t vertices_per_instance, bool is_virtual) : type(type), vertices_per_instance(vertices_per_instance), AbstactObject(is_virtual) {}
+		Primitive(primitive_type type, size_t vertices_per_instance) : type(type), vertices_per_instance(vertices_per_instance), AbstactObject(true) {}
 		auto const& operator*() const { return data; }
 		auto& operator*() { return data; }
-		auto const& operator->() const { return data; }
-		auto& operator->() { return data; }
+		auto const* operator->() const { return &data; }
+		auto* operator->() { return &data; }
 	};
 	class Object : public AbstactObject {
 		using ColorStorage = std::vector<Color>;
