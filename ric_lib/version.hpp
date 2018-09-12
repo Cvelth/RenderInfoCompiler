@@ -3,7 +3,7 @@
 #define Version_Major 0
 #define Version_Minor 0
 #define Version_Patch 0
-#define Version_Build 46
+#define Version_Build 47
 
 #include <string>
 namespace ric {

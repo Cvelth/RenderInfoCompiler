@@ -140,47 +140,6 @@ namespace ric {
 		}
 	}
 
-	void process_operator_node(Tree tree, ObjectFile &file) {
-		if (tree->type != TokenType::arithmetic)
-			throw Exceptions::InnerCompilationError(tree->value + " was found instead of an operator.", tree->line, tree->pos);
-		if (tree->value.size() != 1u)
-			throw Exceptions::InnerCompilationError("Operator " + tree->value + " is not supported.", tree->line, tree->pos);
-		switch (tree->value[0]) {
-			case '=':
-				if (!tree->left)
-					throw Exceptions::InnerCompilationError("There's nothing to the left side of operator=.", tree->line, tree->pos);
-				if (!tree->right)
-					throw Exceptions::InnerCompilationError("There's nothing to the right side of operator=.", tree->line, tree->pos);
-				if (tree->left->type != TokenType::object)
-					throw Exceptions::InnerCompilationError(tree->value + " was found to the left side of operator= instead of lvalue.", tree->left->line, tree->left->pos);
-				if (tree->left->left->type != TokenType::datatype)
-					throw Exceptions::InnerCompilationError(tree->value + " was found to the left side of operator= instead of datatype.", tree->left->line, tree->left->pos);
-				if (!tree->left->left)
-					throw Exceptions::InnerCompilationError("Object type is unsupported: '" + tree->left->value + "'.", tree->left->line, tree->left->pos);
-				switch (auto type = convert_to_DataType(tree->left->left)) {
-					case DataType::color:
-						file.colors.insert(std::make_pair(tree->left->value, process_color(tree->right, file, 
-																								tree->left->left->left 
-																								&& tree->left->left->left->type == TokenType::reserved 
-																								&& tree->left->left->left->value == "virtual")));
-						break;
-					case DataType::palette:
-					case DataType::primitive:
-					case DataType::object:
-						Unimplemented_Feature;
-					default:
-						throw Exceptions::InnerCompilationError("Unsupported object type.", tree->left->left->line, tree->left->left->pos);
-				}
-				break;
-			case '+':
-			case '-':
-			case '*':
-			case '/':
-				Unimplemented_Feature;
-			default:
-				throw Exceptions::InnerCompilationError("Operator " + tree->value + " is not supported.", tree->line, tree->pos);
-		}
-	}
 	void process_object_node(Tree tree, ObjectFile &file) {
 		if (tree->type != TokenType::object)
 			throw Exceptions::InnerCompilationError("'" + tree->value + "' is found instead of an object.", tree->line, tree->pos);
@@ -226,7 +185,33 @@ namespace ric {
 				process_tree_node_type(tree->right, file);
 				break;
 			case TokenType::arithmetic:
-				process_operator_node(tree, file);
+				if (tree->value == "=") {
+					if (!tree->left)
+						throw Exceptions::InnerCompilationError("There's nothing to the left side of operator=.", tree->line, tree->pos);
+					if (!tree->right)
+						throw Exceptions::InnerCompilationError("There's nothing to the right side of operator=.", tree->line, tree->pos);
+					if (tree->left->type != TokenType::object)
+						throw Exceptions::InnerCompilationError(tree->value + " was found to the left side of operator= instead of lvalue.", tree->left->line, tree->left->pos);
+					if (tree->left->left->type != TokenType::datatype)
+						throw Exceptions::InnerCompilationError(tree->value + " was found to the left side of operator= instead of datatype.", tree->left->line, tree->left->pos);
+					if (!tree->left->left)
+						throw Exceptions::InnerCompilationError("Object type is unsupported: '" + tree->left->value + "'.", tree->left->line, tree->left->pos);
+					switch (auto type = convert_to_DataType(tree->left->left)) {
+						case DataType::color:
+							file.colors.insert(std::make_pair(tree->left->value, process_color(tree->right, file,
+																							   tree->left->left->left
+																							   && tree->left->left->left->type == TokenType::reserved
+																							   && tree->left->left->left->value == "virtual")));
+							break;
+						case DataType::palette:
+						case DataType::primitive:
+						case DataType::object:
+							Unimplemented_Feature;
+						default:
+							throw Exceptions::InnerCompilationError("Unsupported object type.", tree->left->left->line, tree->left->left->pos);
+					}
+				} else
+					throw Exceptions::InnerCompilationError("Operator" + tree->value + " is now expected here.", tree->line, tree->pos);
 				break;
 			case TokenType::object:
 				process_object_node(tree, file);
