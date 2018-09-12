@@ -441,7 +441,11 @@ namespace ric {
 						throw Exceptions::InnerCompilationError("Operator" + it->value + " is not expected here.", it->line, it->pos);
 					break;
 				case TokenType::library:
-					ret.primitive(process_library_primitive(it));
+					try {
+						ret.primitive(process_library_primitive(it));
+					} catch (Exceptions::LibraryCompilationError &e) {
+						throw Exceptions::InnerCompilationError(e.error, it->line, it->pos);
+					}
 					break;
 
 				case TokenType::comma:
