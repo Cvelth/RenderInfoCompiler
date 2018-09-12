@@ -31,6 +31,25 @@ namespace ric {
 		}
 	}
 
+	template <class List>
+	List& parse_with_separator(Tree tree, List &list, TokenType separator) {
+		if (tree) {
+			if (tree->type != separator)
+				list.push_back(tree);
+			else {
+				if (tree->left)
+					parse_with_separator(tree->left, list, separator);
+				if (tree->right)
+					parse_with_separator(tree->right, list, separator);
+			}
+		}
+		return list;
+	}
+	std::list<Tree> parse_with_separator(Tree tree, TokenType separator) {
+		std::list<Tree> ret;
+		return parse_with_separator(tree, ret, separator);
+	}
+
 	Color get_color(Tree tree, ObjectFile &file) {
 		if (tree->type != TokenType::identificator)
 			throw Exceptions::InnerCompilationError(tree->value + " is not a valid identificator.", tree->line, tree->pos);
@@ -139,6 +158,46 @@ namespace ric {
 				throw Exceptions::InnerCompilationError("Unknown tree node '" + tree->value + "' was encountered.", tree->line, tree->pos);
 		}
 	}
+	Palette process_palette(Tree tree, ObjectFile &file, bool is_virtual = false) {
+		auto list = parse_with_separator(tree, TokenType::comma);
+		if (list.size() > std::numeric_limits<uint16_t>::max())
+			throw Exceptions::InnerCompilationError("To many members of the palette. There should be no more than 65535", tree->line, tree->pos);
+		Palette ret(is_virtual);
+		for (auto it : list) {
+			switch (it->type) {
+				case TokenType::color_literal:
+				case TokenType::identificator:
+				case TokenType::index:
+				case TokenType::block:
+				case TokenType::bracket:
+					ret->push_back(process_color(it, file, true));
+					break;
+				case TokenType::library:
+				case TokenType::arithmetic:
+					Unimplemented_Feature;
+
+				case TokenType::comma:
+					throw Exceptions::InnerCompilationError("Comma is not expected here.", tree->line, tree->pos);
+				case TokenType::reserved:
+					throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+				case TokenType::datatype:
+					throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+				case TokenType::number:
+					throw Exceptions::InnerCompilationError("Number " + tree->value + " is not expected here.", tree->line, tree->pos);
+				case TokenType::semicolon:
+					throw Exceptions::InnerCompilationError("Semicolon is not expected here.", tree->line, tree->pos);
+				case TokenType::namespace_:
+					throw Exceptions::InnerCompilationError("Namespace is not expected here.", tree->line, tree->pos);
+				case TokenType::object:
+					throw Exceptions::InnerCompilationError("Object is not expected here.", tree->line, tree->pos);
+
+				case TokenType::unknown:
+				default:
+					throw Exceptions::InnerCompilationError("Unsupported member of a palette: '" + it->value + "'.", it->line, it->pos);
+			}
+		}
+		return ret;
+	}
 
 	void process_object_node(Tree tree, ObjectFile &file) {
 		if (tree->type != TokenType::object)
@@ -161,11 +220,18 @@ namespace ric {
 					else
 						throw Exceptions::InnerCompilationError("Color was expected but '" + tree->right->value + " is found instead.", tree->right->line, tree->right->pos);
 				file.colors.insert(std::make_pair(tree->value, process_color(tree->right, file,
-																				  tree->left->left
-																				  && tree->left->left->type == TokenType::reserved
-																				  && tree->left->left->value == "virtual")));
+																			 tree->left->left
+																			 && tree->left->left->type == TokenType::reserved
+																			 && tree->left->left->value == "virtual")));
 				break;
 			case DataType::palette:
+				if (tree->left->type != TokenType::datatype)
+					throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
+				file.palettes.insert(std::make_pair(tree->value, process_palette(tree->right, file,
+																			     tree->left->left
+																			     && tree->left->left->type == TokenType::reserved
+																			     && tree->left->left->value == "virtual")));
+				break;
 			case DataType::primitive:
 			case DataType::object:
 				Unimplemented_Feature;
