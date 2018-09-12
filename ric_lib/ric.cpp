@@ -36,6 +36,37 @@ std::string ric::number(double const& s) {
 	return oss.str();
 }
 
+ric::primitive_type ric::convert_to_primitive_type(Tree tree) {
+	if (tree->type != TokenType::identificator)
+		throw Exceptions::InnerCompilationError("Unsupported primitive type.", tree->line, tree->pos);
+
+	if (tree->value == "points")
+		return primitive_type::points;
+	else if (tree->value == "lines")
+		return primitive_type::lines;
+	else if (tree->value == "line_strip")
+		return primitive_type::line_strip;
+	else if (tree->value == "line_loop")
+		return primitive_type::line_loop;
+	else if (tree->value == "triangles")
+		return primitive_type::triangles;
+	else if (tree->value == "triangle_strip")
+		return primitive_type::triangle_strip;
+	else if (tree->value == "triangle_fan")
+		return primitive_type::triangle_fan;
+	else if (tree->value == "quads")
+		return primitive_type::quads;
+	else if (tree->value == "quad_strip")
+		return primitive_type::quad_strip;
+	else if (tree->value == "polygon")
+		return primitive_type::polygon;
+	else
+		throw Exceptions::InnerCompilationError("Unsupported primitive type.", tree->line, tree->pos);
+}
+uint8_t ric::convert(primitive_type const& s) {
+	return uint8_t(s);
+}
+
 namespace ric {
 	std::list<Token> tokenize(std::string const& path);
 	Tree analyze(std::list<Token> const& tokens);
