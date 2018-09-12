@@ -1,5 +1,67 @@
 #include "shared.hpp"
 #include "ric.hpp"
+namespace ric {
+	std::string current_namespace;
+
+	void process_operator_node(Tree tree, ObjectFile &file) {}
+	void process_object_node(Tree tree, ObjectFile &file) {}
+
+	void process_tree_node_type(Tree tree, ObjectFile &file) {
+		if (!tree)
+			return;
+		switch (tree->type) {
+			case TokenType::semicolon:
+				process_tree_node_type(tree->left, file);
+				process_tree_node_type(tree->right, file);
+				break;
+			case TokenType::namespace_:
+				current_namespace = tree->value;
+				process_tree_node_type(tree->right, file);
+				break;
+			case TokenType::arithmetic:
+				process_operator_node(tree, file);
+				break;
+			case TokenType::object:
+				process_object_node(tree, file);
+				break;
+
+			case TokenType::comma:
+				throw Exceptions::InnerCompilationError("Comma is not expected here.", tree->line, tree->pos);
+			case TokenType::block:
+				throw Exceptions::InnerCompilationError("{}-block is not expected here.", tree->line, tree->pos);
+			case TokenType::index:
+				throw Exceptions::InnerCompilationError("[]-block is not expected here.", tree->line, tree->pos);
+			case TokenType::bracket:
+				throw Exceptions::InnerCompilationError("()-block is not expected here.", tree->line, tree->pos);
+			case TokenType::reserved:
+				throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+			case TokenType::datatype:
+				throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+			case TokenType::library:
+				throw Exceptions::InnerCompilationError(tree->value + " is not expected here.", tree->line, tree->pos);
+			case TokenType::identificator:
+				throw Exceptions::InnerCompilationError("Identificator " + tree->value + " is not expected here.", tree->line, tree->pos);
+			case TokenType::number:
+				throw Exceptions::InnerCompilationError("Number " + tree->value + " is not expected here.", tree->line, tree->pos);
+			case TokenType::color_literal:
+				throw Exceptions::InnerCompilationError("Color " + tree->value + " is not expected here.", tree->line, tree->pos);
+
+			case TokenType::unknown:
+			default:
+				throw Exceptions::InnerCompilationError("Unknown tree node '" + tree->value + "' was encountered.", tree->line, tree->pos);
+		}
+	}
+	ObjectFile generate_object_file(Tree tree) {
+		current_namespace = "";
+		ObjectFile file;
+		process_tree_node_type(tree, file);
+	}
+	void generate(std::ostream &file, Tree tree) {
+		auto file_data = generate_object_file(tree);
+
+
+	}
+}
 
 /*
 #include <ostream>
