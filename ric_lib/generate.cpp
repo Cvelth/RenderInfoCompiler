@@ -198,6 +198,36 @@ namespace ric {
 		}
 		return ret;
 	}
+	Primitive process_primitive(Tree tree, ObjectFile &file, Tree params) {
+		auto parameters = parse_with_separator(params, TokenType::comma);
+		if (parameters.size() != 2)
+			throw Exceptions::InnerCompilationError("Primitive expects two parameters: drawing mode and number of vertices per instance.", params->line, params->pos);
+
+		auto number_value = number(parameters.back()->value);
+		if (number_value != size_t(number_value))
+			throw Exceptions::InnerCompilationError("Number of vertices per primitive instance should be an unsigned integer.", tree->line, tree->pos);
+		Primitive ret(convert_to_primitive_type(parameters.front()), size_t(number_value));
+
+		std::list<std::vector<double>> values;
+		for (auto row : parse_with_separator(tree, TokenType::semicolon)) {
+			values.push_back(std::vector<double>());
+			for (auto it : parse_with_separator(row, TokenType::comma)) {
+				if (it->type != TokenType::number)
+					throw Exceptions::InnerCompilationError("Unsupported value in primitive body: '" + it->value + "'.", it->line, it->pos);
+				values.back().push_back(number(it->value));
+			}
+		}
+
+		for (auto row : values) {
+			std::copy(row.begin(), row.end(), std::back_inserter(*ret));
+			if (row.size() != number_value) {
+				for (size_t i = 0; i < number_value - row.size() - 1; i++)
+					ret->push_back(0.0);
+				ret->push_back(1.0);
+			}
+		}
+		return ret;
+	}
 
 	void process_object_node(Tree tree, ObjectFile &file) {
 		if (tree->type != TokenType::object)
@@ -207,7 +237,8 @@ namespace ric {
 		Tree type_node;
 		if (tree->left->type == TokenType::datatype)
 			type_node = tree->left;
-		else if (tree->left->type == TokenType::index && tree->left->left && tree->left->left->type == TokenType::datatype)
+		else if ((tree->left->type == TokenType::index || tree->left->type == TokenType::bracket) 
+				 && tree->left->left && tree->left->left->type == TokenType::datatype)
 			type_node = tree->left->left;
 		else
 			throw Exceptions::InnerCompilationError("DataType is expected before '" + tree->value + "'.", tree->line, tree->pos);
@@ -233,6 +264,11 @@ namespace ric {
 																			     && tree->left->left->value == "virtual")));
 				break;
 			case DataType::primitive:
+				if (tree->value == "")
+					throw Exceptions::InnerCompilationError("Unnamed primitive outside of an object was ignored.", tree->line, tree->pos);
+				file.primitives.insert(std::make_pair(tree->value, process_primitive(tree->right, file,
+																					 tree->left->right)));
+				break;
 			case DataType::object:
 				Unimplemented_Feature;
 		}
