@@ -77,6 +77,7 @@ namespace ric {
 }
 
 #include <vector>
+#include <map>
 namespace ric {
 	class AbstactObject {
 	private:
@@ -143,8 +144,8 @@ namespace ric {
 	};
 
 	struct ObjectFile {
-		std::list<Color> colors;
-		std::list<Color> palettes;
-		std::list<Color> objects;
+		std::map<std::string, Color> colors;
+		std::map<std::string, Palette> palettes;
+		std::map<std::string, Object> objects;
 	};
 }
