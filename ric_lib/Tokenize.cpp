@@ -31,6 +31,10 @@ namespace ric {
 			use_parameters::double_precision = true;
 		else if (temp == "single_precision")
 			use_parameters::double_precision = false;
+		else if (temp == "enable_alpha_colors")
+			use_parameters::alpha_colors = true;
+		else if (temp == "disable_alpha_colors")
+			use_parameters::alpha_colors = false;
 		else
 			throw Exceptions::InnerCompilationError("Unknown use directive.", c, p);
 	}

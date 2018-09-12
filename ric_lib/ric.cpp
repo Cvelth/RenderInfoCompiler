@@ -22,6 +22,7 @@ std::string ric::Exceptions::CompilationError::what() const {
 }
 
 bool ric::use_parameters::double_precision = false;
+bool ric::use_parameters::alpha_colors = false;
 
 double ric::number(std::string const& s) {
 	std::istringstream iss(s);
