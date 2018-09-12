@@ -141,6 +141,7 @@ namespace ric {
 		void primitive(Primitive const& primitive) { data.push_back(std::make_pair(current_color, primitive)); }
 		auto const& operator*() const { return data; }
 		auto const& operator->() const { return data; }
+		auto const& operator[](ColorIterator const& index) const { return colors[index]; }
 	};
 
 	struct ObjectFile {
