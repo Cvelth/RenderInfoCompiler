@@ -92,8 +92,9 @@ namespace ric {
 			for (auto it : source)
 				t[i++] = it;
 			if (t[0]->type == TokenType::datatype && t[1]->type == TokenType::identificator
-				&& t[2]->type == TokenType::index && t[3]->type == TokenType::block
-				&& t[2]->right->type == TokenType::identificator) 
+				&& ((t[2]->type == TokenType::index && t[2]->right->type == TokenType::identificator) 
+					|| t[2]->type == TokenType::bracket)
+				&& t[3]->type == TokenType::block) 
 			{
 				t[2]->left = t[0];
 				t[1]->left = t[2];
