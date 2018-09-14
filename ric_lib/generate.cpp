@@ -218,6 +218,9 @@ namespace ric {
 		} else
 			throw Exceptions::InnerCompilationError("'" + tree->value + "' cannot be used here.", tree->line, tree->pos);
 	}
+	std::unique_ptr<mgl::math::transformation3d> process_library_transformation(Tree tree) {
+		Unimplemented_Feature;
+	}
 
 	Color process_color(Tree tree, ObjectFile &file, bool is_virtual = false) {
 		if (!tree)
