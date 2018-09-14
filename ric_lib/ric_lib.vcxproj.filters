@@ -35,5 +35,8 @@
     <ClCompile Include="Library.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="operators.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

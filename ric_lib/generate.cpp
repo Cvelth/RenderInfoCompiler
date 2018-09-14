@@ -356,6 +356,7 @@ namespace ric {
 		}
 		return ret;
 	}
+	Object process_binary_operator(Tree tree, ObjectFile &file);
 	Object process_object(Tree tree, ObjectFile &file, bool is_virtual = false, Color *default_color = nullptr) {
 		auto list = parse_with_separator(tree, TokenType::semicolon);
 		Object ret(is_virtual);
@@ -415,11 +416,11 @@ namespace ric {
 				}
 
 				case TokenType::arithmetic:
+					if (!it->left)
+						throw Exceptions::InnerCompilationError("There's nothing to the left side of operator" + it->value + ".", it->line, it->pos);
+					if (!it->right)
+						throw Exceptions::InnerCompilationError("There's nothing to the right side of operator" + it->value + ".", it->line, it->pos);
 					if (it->value == "=") {
-						if (!it->left)
-							throw Exceptions::InnerCompilationError("There's nothing to the left side of operator=.", it->line, it->pos);
-						if (!it->right)
-							throw Exceptions::InnerCompilationError("There's nothing to the right side of operator=.", it->line, it->pos);
 						if (it->left->type != TokenType::object)
 							throw Exceptions::InnerCompilationError(it->value + " was found to the left side of operator= instead of lvalue.", it->left->line, it->left->pos);
 						if (it->left->left->type != TokenType::datatype)
@@ -438,7 +439,7 @@ namespace ric {
 								throw Exceptions::InnerCompilationError("Unsupported object type.", it->left->left->line, it->left->left->pos);
 						}
 					} else
-						throw Exceptions::InnerCompilationError("Operator" + it->value + " is not expected here.", it->line, it->pos);
+						return process_binary_operator(it, file);
 					break;
 				case TokenType::library:
 					try {

@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="generate.cpp" />
     <ClCompile Include="Library.cpp" />
+    <ClCompile Include="operators.cpp" />
     <ClCompile Include="ric.cpp" />
     <ClCompile Include="syntax.cpp" />
     <ClCompile Include="tokenize.cpp" />
