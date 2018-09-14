@@ -188,92 +188,99 @@ namespace ric {
 			{
 				if (auto left = process_color_operand(tree->left, file); left) {
 					if (auto right = process_color_operand(tree->right, file); right) {
-						//Color * Color
+						//Color * Color -> Color
 					} else if (auto right = process_palette_operand(tree->right, file); right) {
-						//Color * Palette
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Color, Palette).", tree->line, tree->pos);
 					} else if (auto right = process_primitive_operand(tree->right, file); right) {
-						//Color * Primitive
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Color, Primitive).", tree->line, tree->pos);
 					} else if (auto right = process_object_operand(tree->right, file); right) {
-						//Color * Object
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Color, Object).", tree->line, tree->pos);
 					} else if (auto right = process_transformation_operand(tree->right, file); right) {
-						//Color * Transformation
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Color, Transformation).", tree->line, tree->pos);
 					} else if (auto right = process_number_operand(tree->right, file); right) {
-						//Color * Number
+						//Color * Number -> Color
 					} else
 						throw Exceptions::InnerCompilationError("Unsupported identificator to the right of operator" + tree->value + ".", tree->line, tree->pos);
 				} else if (auto left = process_palette_operand(tree->left, file); left) {
 					if (auto right = process_color_operand(tree->right, file); right) {
-						//Palette * Color
+						//Palette * Color -> Palette
 					} else if (auto right = process_palette_operand(tree->right, file); right) {
-						//Palette * Palette
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Palette, Palette).", tree->line, tree->pos);
 					} else if (auto right = process_primitive_operand(tree->right, file); right) {
-						//Palette * Primitive
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Palette, Primitive).", tree->line, tree->pos);
 					} else if (auto right = process_object_operand(tree->right, file); right) {
-						//Palette * Object
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Palette, Object).", tree->line, tree->pos);
 					} else if (auto right = process_transformation_operand(tree->right, file); right) {
-						//Palette * Transformation
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Palette, Transformation).", tree->line, tree->pos);
 					} else if (auto right = process_number_operand(tree->right, file); right) {
-						//Palette * Number
+						//Palette * Number -> Palette
 					} else
 						throw Exceptions::InnerCompilationError("Unsupported identificator to the right of operator" + tree->value + ".", tree->line, tree->pos);
 				} else if (auto left = process_primitive_operand(tree->left, file); left) {
 					if (auto right = process_color_operand(tree->right, file); right) {
-						//Primitive * Color
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Primitive, Color).", tree->line, tree->pos);
 					} else if (auto right = process_palette_operand(tree->right, file); right) {
-						//Primitive * Palette
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Primitive, Palette).", tree->line, tree->pos);
 					} else if (auto right = process_primitive_operand(tree->right, file); right) {
-						//Primitive * Primitive
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Primitive, Primitive).", tree->line, tree->pos);
 					} else if (auto right = process_object_operand(tree->right, file); right) {
-						//Primitive * Object
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Primitive, Object).", tree->line, tree->pos);
 					} else if (auto right = process_transformation_operand(tree->right, file); right) {
-						//Primitive * Transformation
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Primitive, Transformation). "
+																"Did you mean operator" + tree->value + "(Transformation, Primitive)?", tree->line, tree->pos);
 					} else if (auto right = process_number_operand(tree->right, file); right) {
-						//Primitive * Number
+						//Primitive * Number -> Primitive
 					} else
 						throw Exceptions::InnerCompilationError("Unsupported identificator to the right of operator" + tree->value + ".", tree->line, tree->pos);
 				} else if (auto left = process_object_operand(tree->left, file); left) {
 					if (auto right = process_color_operand(tree->right, file); right) {
-						//Object * Color
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Object, Color).", tree->line, tree->pos);
 					} else if (auto right = process_palette_operand(tree->right, file); right) {
-						//Object * Palette
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Object, Palette).", tree->line, tree->pos);
 					} else if (auto right = process_primitive_operand(tree->right, file); right) {
-						//Object * Primitive
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Object, Primitive).", tree->line, tree->pos);
 					} else if (auto right = process_object_operand(tree->right, file); right) {
-						//Object * Object
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Object, Object).", tree->line, tree->pos);
 					} else if (auto right = process_transformation_operand(tree->right, file); right) {
-						//Object * Transformation
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Object, Transformation). "
+																"Did you mean operator" + tree->value + "(Transformation, Object)?", tree->line, tree->pos);
 					} else if (auto right = process_number_operand(tree->right, file); right) {
-						//Object * Number
+						//Object * Number -> Object
 					} else
 						throw Exceptions::InnerCompilationError("Unsupported identificator to the right of operator" + tree->value + ".", tree->line, tree->pos);
 				} else if (auto left = process_transformation_operand(tree->left, file); left) {
 					if (auto right = process_color_operand(tree->right, file); right) {
-						//Transformation * Color
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Transformation, Color).", tree->line, tree->pos);
 					} else if (auto right = process_palette_operand(tree->right, file); right) {
-						//Transformation * Palette
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Transformation, Palette).", tree->line, tree->pos);
 					} else if (auto right = process_primitive_operand(tree->right, file); right) {
-						//Transformation * Primitive
+						//Transformation * Primitive -> Primitive
 					} else if (auto right = process_object_operand(tree->right, file); right) {
-						//Transformation * Object
+						//Transformation * Object -> Object
 					} else if (auto right = process_transformation_operand(tree->right, file); right) {
-						//Transformation * Transformation
+						//Transformation * Transformation -> Transformation
 					} else if (auto right = process_number_operand(tree->right, file); right) {
-						//Transformation * Number
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Transformation, Number).", tree->line, tree->pos);
 					} else
 						throw Exceptions::InnerCompilationError("Unsupported identificator to the right of operator" + tree->value + ".", tree->line, tree->pos);
 				} else if (auto left = process_number_operand(tree->left, file); left) {
 					if (auto right = process_color_operand(tree->right, file); right) {
-						//Number * Color
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Number, Color). "
+																"Did you mean operator" + tree->value + "(Color, Number)?", tree->line, tree->pos);
 					} else if (auto right = process_palette_operand(tree->right, file); right) {
-						//Number * Palette
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Number, Palette). "
+																"Did you mean operator" + tree->value + "(Palette, Number)?", tree->line, tree->pos);
 					} else if (auto right = process_primitive_operand(tree->right, file); right) {
-						//Number * Primitive
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Number, Primitive). "
+																"Did you mean operator" + tree->value + "(Primitive, Number)?", tree->line, tree->pos);
 					} else if (auto right = process_object_operand(tree->right, file); right) {
-						//Number * Object
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Number, Object). "
+																"Did you mean operator" + tree->value + "(Object, Number)?", tree->line, tree->pos);
 					} else if (auto right = process_transformation_operand(tree->right, file); right) {
-						//Number * Transformation
+						throw Exceptions::InnerCompilationError("There is no operator" + tree->value + "(Number, Transformation). "
+																"Did you mean operator" + tree->value + "(Transformation, Number)?", tree->line, tree->pos);
 					} else if (auto right = process_number_operand(tree->right, file); right) {
-						//Number * Number
+						Unimplemented_Feature;
 					} else
 						throw Exceptions::InnerCompilationError("Unsupported identificator to the right of operator" + tree->value + ".", tree->line, tree->pos);
 				} else
