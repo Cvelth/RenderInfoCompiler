@@ -49,3 +49,17 @@ ric::Primitive ric::library::rectangle(double aspect_ratio, bool is_filled, size
 ric::Primitive ric::library::square(bool is_filled, size_t numbers_per_vertex) {
 	return rectangle(1.0, is_filled, numbers_per_vertex);
 }
+
+#include "mgl/math/transformation.hpp"
+std::unique_ptr<mgl::math::transformation3d> ric::library::translation(double x, double y, double z) {
+	auto ret = mgl::math::translation<double>(mgl::math::basic_vector<double, 3u>{x, y, z});
+	return std::unique_ptr<mgl::math::transformation3d>(new mgl::math::transformation3d(ret));
+}
+std::unique_ptr<mgl::math::transformation3d> ric::library::rotation(double a, double x, double y, double z) {
+	auto ret = mgl::math::rotation<double>(a, mgl::math::basic_vector<double, 3u>{x, y, z});
+	return std::unique_ptr<mgl::math::transformation3d>(new mgl::math::transformation3d(ret));
+}
+std::unique_ptr<mgl::math::transformation3d> ric::library::scaling(double x, double y, double z) {
+	auto ret = mgl::math::scaling<double>(mgl::math::basic_vector<double, 3u>{x, y, z});
+	return std::unique_ptr<mgl::math::transformation3d>(new mgl::math::transformation3d(ret));
+}

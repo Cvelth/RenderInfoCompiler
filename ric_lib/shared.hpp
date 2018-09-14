@@ -155,11 +155,16 @@ namespace ric {
 		std::map<std::string, Primitive> primitives;
 		std::map<std::string, Object> objects;
 	};
+}
 
-	namespace library {
-		Primitive ellipse(double aspect_ratio, bool is_filled, size_t points = 30, size_t numbers_per_vertex = 2);
-		Primitive circle(bool is_filled, size_t points = 30, size_t numbers_per_vertex = 2);
-		Primitive rectangle(double aspect_ratio, bool is_filled, size_t numbers_per_vertex = 2);
-		Primitive square(bool is_filled, size_t numbers_per_vertex = 2);
-	}
+namespace mgl::math { class transformation3d; }
+namespace ric::library {
+	Primitive ellipse(double aspect_ratio, bool is_filled, size_t points = 30, size_t numbers_per_vertex = 2);
+	Primitive circle(bool is_filled, size_t points = 30, size_t numbers_per_vertex = 2);
+	Primitive rectangle(double aspect_ratio, bool is_filled, size_t numbers_per_vertex = 2);
+	Primitive square(bool is_filled, size_t numbers_per_vertex = 2);
+
+	std::unique_ptr<mgl::math::transformation3d> translation(double x, double y, double z);
+	std::unique_ptr<mgl::math::transformation3d> rotation(double a, double x, double y, double z);
+	std::unique_ptr<mgl::math::transformation3d> scaling(double x, double y, double z);
 }
