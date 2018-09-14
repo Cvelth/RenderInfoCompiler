@@ -94,6 +94,11 @@ namespace ric {
 	struct Color : public AbstactObject {
 		uint8_t data[4];
 		Color(bool is_virtual = false, uint8_t r = 0, uint8_t g = 0, uint8_t b = 0, uint8_t a = 1) : data{r,g,b,a}, AbstactObject(is_virtual) {}
+		Color& operator=(Color const& other) {
+			for (int i = 0; i < 4; i++)
+				data[i] = other.data[i];
+			return *this;
+		}
 		uint8_t const* operator*() const { return data; }
 		uint8_t* operator*() { return data; }
 		uint8_t const& operator[](size_t index) const { return data[index]; }
@@ -128,6 +133,13 @@ namespace ric {
 		size_t vertices_per_instance;
 		std::vector<double> data;
 		Primitive(primitive_type type, size_t vertices_per_instance) : type(type), vertices_per_instance(vertices_per_instance), AbstactObject(true) {}
+		Primitive& operator=(Primitive const& other) {
+			data.clear();
+			type = other.type;
+			vertices_per_instance = other.vertices_per_instance;
+			data = other.data;
+			return *this;
+		}
 		auto const& operator*() const { return data; }
 		auto& operator*() { return data; }
 		auto const* operator->() const { return &data; }
@@ -147,8 +159,11 @@ namespace ric {
 		Color const& color() const { return colors[current_color]; }
 		void primitive(Primitive const& primitive) { data.push_back(std::make_pair(current_color, primitive)); }
 		auto const& operator*() const { return data; }
+		auto& operator*() { return data; }
 		auto const& operator->() const { return data; }
+		auto& operator->() { return data; }
 		auto const& operator[](ColorIterator const& index) const { return colors[index]; }
+		auto& operator[](ColorIterator const& index) { return colors[index]; }
 	};
 
 	struct ObjectFile {
