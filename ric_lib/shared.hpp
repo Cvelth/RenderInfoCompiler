@@ -114,6 +114,8 @@ namespace ric {
 		auto& operator*() { return data; }
 		auto const* operator->() const { return &data; }
 		auto* operator->() { return &data; }
+		Color const& operator[](size_t index) const { return data[index]; }
+		Color& operator[](size_t index) { return data[index]; }
 	};
 
 	enum class primitive_type {
