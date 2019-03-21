@@ -2,10 +2,10 @@
 
 #include "primitives.hpp"
 void use_extention::primitives() {
-	ExtentionManager::add(Primitives());
+	ExtentionManager::add(std::make_unique<Primitives>());
 }
 
 #include "transformations.hpp"
 void use_extention::transformations() {
-	ExtentionManager::add(Transformations());
+	ExtentionManager::add(std::make_unique<Transformations>());
 }

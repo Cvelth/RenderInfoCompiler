@@ -11,4 +11,6 @@ public:
 	bool operator<(Extention const& other) const {
 		return name() < other.name();
 	}
+
+	virtual ~Extention() {}
 };
