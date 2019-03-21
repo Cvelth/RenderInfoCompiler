@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
 			}
 		}
 	} catch (std::system_error) {
-		std::cout << "Error: it seems like a file with unsupportable name was met. Aborting...\n"
+		std::cout << "Error: it seems like a file with unsupported name was met. Aborting...\n"
 			<< "    Make sure there are no UTF-16 file-names.\n";
 	}
 	return 0;
