@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ric_lib", "ric_lib\ric_lib.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ric_ui", "ric_ui\ric_ui.vcxproj", "{43D1621A-05A2-4C3B-942F-B8E511BB2696}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ric_ext", "ric_ext\ric_ext.vcxproj", "{E4845AAB-7D39-4300-8DA5-FEF3E9D940B6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{43D1621A-05A2-4C3B-942F-B8E511BB2696}.Release|x64.Build.0 = Release|x64
 		{43D1621A-05A2-4C3B-942F-B8E511BB2696}.Release|x86.ActiveCfg = Release|Win32
 		{43D1621A-05A2-4C3B-942F-B8E511BB2696}.Release|x86.Build.0 = Release|Win32
+		{E4845AAB-7D39-4300-8DA5-FEF3E9D940B6}.Debug|x64.ActiveCfg = Debug|x64
+		{E4845AAB-7D39-4300-8DA5-FEF3E9D940B6}.Debug|x64.Build.0 = Debug|x64
+		{E4845AAB-7D39-4300-8DA5-FEF3E9D940B6}.Debug|x86.ActiveCfg = Debug|Win32
+		{E4845AAB-7D39-4300-8DA5-FEF3E9D940B6}.Debug|x86.Build.0 = Debug|Win32
+		{E4845AAB-7D39-4300-8DA5-FEF3E9D940B6}.Release|x64.ActiveCfg = Release|x64
+		{E4845AAB-7D39-4300-8DA5-FEF3E9D940B6}.Release|x64.Build.0 = Release|x64
+		{E4845AAB-7D39-4300-8DA5-FEF3E9D940B6}.Release|x86.ActiveCfg = Release|Win32
+		{E4845AAB-7D39-4300-8DA5-FEF3E9D940B6}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
