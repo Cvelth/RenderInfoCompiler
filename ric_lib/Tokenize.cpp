@@ -2,86 +2,32 @@
 #include "ric.hpp"
 
 #include <set>
-const std::set<char> separators{' ', '\t'};
 const std::set<char> s_tokens{';', ',', '{', '}', '[', ']', '(', ')', '/', '*', '+', '-', '='};
-const std::set<std::string> reserved {
+const std::set<std::string> directives {
+	"enable", "disable", "include", "use"
+};
+const std::set<std::string> keywords {
 	"virtual", "namespace"
 };
 const std::set<std::string> datatypes {
 	"palette", "color", "object", "primitive"
 };
+#include "ric_ext/extentions.hpp"
 
 std::string current_path = "";
 
-#include <map>
-std::map<std::string, std::pair<bool, std::set<std::string>>> library_reserved{
-	std::make_pair("primitives", std::make_pair(false, std::set<std::string>{ "ellipse", "circle", "rectangle", "square" })),
-	std::make_pair("transformations", std::make_pair(false, std::set<std::string>{ "translate", "scale", "rotate" })),
+std::map<std::string, bool> ric::mode_parameters = {
+	std::pair("double_precision", false),
+	std::pair("color_alpha", false)
 };
 
 #include <sstream>
 namespace ric {
-	void use_directive(std::string line, size_t c, size_t p = 0) {
-		std::istringstream s(line);
-		std::string temp;
-		if (s >> temp >> temp >> temp)
-			throw Exceptions::InnerCompilationError("Junk information at the end of #use directive.", c, p);
-
-		if (temp == "double_precision")
-			use_parameters::double_precision = true;
-		else if (temp == "single_precision")
-			use_parameters::double_precision = false;
-		else if (temp == "enable_alpha_colors")
-			use_parameters::alpha_colors = true;
-		else if (temp == "disable_alpha_colors")
-			use_parameters::alpha_colors = false;
-		else
-			throw Exceptions::InnerCompilationError("Unknown use directive.", c, p);
-	}
-	std::list<Token> tokenize(std::string const& path);
-	void include_file(std::list<Token> &tokens, std::string name, size_t c, size_t p = 0) {
-		try {
-			auto included = tokenize(current_path + '/' + name);
-			std::copy(included.begin(), included.end(), std::back_inserter(tokens));
-		} catch (Exceptions::InnerCompilationError &e) {
-			throw Exceptions::CompilationError(e, current_path + '/' + name);
-		}
-	}
-	void include_directive(std::list<Token> &tokens, std::string line, size_t c, size_t p = 0) {
-		std::istringstream s(line);
-		std::string temp;
-		if (s >> temp >> temp >> temp)
-			throw Exceptions::InnerCompilationError("Junk information at the end of #include directive.", c, p);
-
-		if (temp.size() > 2 && temp.front() == '<' && temp.back() == '>') {
-			if (auto lib = library_reserved.find(temp.substr(1, temp.size() - 2)); lib != library_reserved.end())
-				lib->second.first = true;
-			else
-				throw Exceptions::InnerCompilationError("There is no standart library with the name: " + temp.substr(1, temp.size() - 2), c, p + 8);
-		} else if (temp.size() > 2 && temp.front() == '"' && temp.back() == '"') {
-			include_file(tokens, temp.substr(1, temp.size() - 2), c, p);
-		} else
-			throw Exceptions::InnerCompilationError("Unsupported parameter in #include directive.", c, p);
-	}
-	void add_line(std::list<Token> &tokens, bool &is_commentary, std::string line, size_t c, size_t p = 0) {
-		if (!is_commentary && line.size() != 0)
-			if (line.at(0) == '#') {
-				if (line.substr(0, 8) == "#include") {
-					include_directive(tokens, line, c, p);
-				} else if (line.substr(0, 4) == "#use") {
-					use_directive(line, c, p);
-				} else if (line.substr(0, 2) == "# ")
-					throw Exceptions::InnerCompilationError("There should be no space after '#' in directives.", c, p);
-				else
-					throw Exceptions::InnerCompilationError("Unknown preprocessor directive: " + line, c, p);
-			} else
-				tokens.push_back(Token(TokenType::unknown, line, c, p));
-	}
 	void parse_line(std::list<Token> &tokens, bool &is_commentary, std::string line, size_t c) {
 		size_t p_shift = 0;
 		for (int i = 0; i < line.size() - 1; i++)
 			if (!is_commentary && line.at(i) == '/' && line.at(i + 1) == '*') {
-				add_line(tokens, is_commentary, line.substr(0, i), c, p_shift);
+				tokens.emplace_back(line.substr(0, i), c, p_shift);
 				is_commentary = true; i++;
 			} else if (is_commentary && line.at(i) == '*' && line.at(i + 1) == '/') {
 				line = line.substr(i + 2);
@@ -94,13 +40,14 @@ namespace ric {
 				if (line.size() == 0)
 					return;
 			}
-			add_line(tokens, is_commentary, line, c, p_shift);
+			if (!is_commentary && line.size() != 0)
+				tokens.emplace_back(line, c, p_shift);
 	}
 
 	bool split_tokens(std::list<Token> &tokens, std::list<Token>::iterator &it, int i) {
-		for (auto &s : separators)
+		for (auto &s : {' ', '\t'})
 			if (it->value.at(i) == s) {
-				Token temp(TokenType::unknown, it->value.substr(0, i), it->line, it->pos);
+				Token temp(it->value.substr(0, i), it->line, it->pos);
 				it->value = it->value.substr(i + 1);
 				it->pos += i + 1;
 				tokens.insert(it, temp);
@@ -118,35 +65,31 @@ namespace ric {
 			}
 		return false;
 	}
-
+	
 	bool is_operator(std::list<Token>::iterator &it) {
 		if (it->value.size() == 1)
 			switch (it->value[0]) {
-				case ';': it->type = TokenType::semicolon; return true;
 				case ',': it->type = TokenType::comma; return true;
 				case '{': case '}': it->type = TokenType::block; return true;
 				case '[': case ']': it->type = TokenType::index; return true;
-				case '(': case ')': it->type = TokenType::bracket; return true;
-
+				case '(': case ')': it->type = TokenType::args; return true;
+	
 				case '+': case '-': case '*': case '/': case '=':
 					it->type = TokenType::arithmetic; return true;
 			}
 		return false;
 	}
 	bool is_reserved(std::list<Token>::iterator &it) {
-		if (reserved.find(it->value) != reserved.end()) {
-			it->type = TokenType::reserved;
+		if (directives.find(it->value) != directives.end()) {
+			it->type = TokenType::directive;
 			return true;
 		} else if (datatypes.find(it->value) != datatypes.end()) {
 			it->type = TokenType::datatype;
 			return true;
-		} else
-			for (auto lib : library_reserved)
-				if (lib.second.first)
-					if (lib.second.second.find(it->value) != lib.second.second.end()) {
-						it->type = TokenType::library;
-						return true;
-					}
+		} else if (keywords.find(it->value) != keywords.end()) {
+			it->type = TokenType::keyword;
+			return true;
+		}
 		return false;
 	}
 	bool is_number(std::string const& s) {
@@ -198,6 +141,103 @@ namespace ric {
 			it->type = TokenType::color_literal;
 		return ret;
 	}
+	bool is_file_name(std::list<Token>::iterator &it) {
+		if (it->value.size() > 2 && (it->value.front() == '\"' && it->value.back() == '\"')) {
+			it->type = TokenType::file;
+			it->value = it->value.substr(1, it->value.size() - 2);
+			return true;
+		} else
+			return false;
+	}
+	bool is_extention_name(std::list<Token>::iterator &it) {
+		if (it->value.size() > 2 && (it->value.front() == '<' && it->value.back() == '>')) {
+			it->type = TokenType::extention;
+			it->value = it->value.substr(1, it->value.size() - 2);
+			return true;
+		} else
+			return false;
+	}
+
+	bool is_double_new_line(std::list<Token>::iterator &it, std::list<Token> &list) {
+		if (it == --list.end())
+			return false;
+		if (it->type != TokenType::new_line)
+			return false;
+		auto temp = it; ++temp;
+		return (temp)->type == TokenType::new_line;
+	}
+}
+
+#include "ric_ext/extentions.hpp"
+namespace ric {
+	std::list<Token> tokenize(std::string const& path);
+	std::list<Token> process_directive(std::list<Token> &tokens) {
+		if (tokens.size() != 3)
+			throw Exceptions::InnerCompilationError("Junk information at the end of '" + tokens.front().value + "'-directive.",
+													(--tokens.end())->line, (--tokens.end())->pos);
+		auto value = *(++tokens.begin());
+		if (tokens.front().value == "enable") {
+			if (value.type != TokenType::identificator)
+				throw Exceptions::InnerCompilationError("Only parameter names are accepted by 'enable'-directive.",
+														value.line, value.pos);
+			ric::mode_parameters.insert_or_assign(value.value, true);
+			return {};
+		} else if (tokens.front().value == "disable") {
+			if (value.type != TokenType::identificator)
+				throw Exceptions::InnerCompilationError("Only parameter names are accepted by 'disable'-directive.",
+														value.line, value.pos);
+			ric::mode_parameters.insert_or_assign(value.value, false);
+			return {};
+		} else if (tokens.front().value == "include") {
+			if(value.type != TokenType::file)
+				throw Exceptions::InnerCompilationError("Only filenames are accepted by 'include'-directive.",
+														value.line, value.pos);
+			try {
+				auto included = tokenize(current_path + '/' + value.value);
+				return included;
+			} catch (Exceptions::InnerCompilationError &e) {
+				throw Exceptions::CompilationError(e, current_path + '/' + value.value);
+			}
+
+			return tokenize(current_path + '/' + value.value);
+		} else if (tokens.front().value == "use") {
+			if (value.type != TokenType::extention)
+				throw Exceptions::InnerCompilationError("Only extention names are accepted by 'use'-directive.",
+														value.line, value.pos);
+			try {
+				if (!ExtentionManager::add(value.value))
+					throw Exceptions::InnerCompilationError("Extention cannot be used.",
+					(--tokens.end())->line, (--tokens.end())->pos);
+			} catch (Exceptions::ExtentionError &e) {
+				throw Exceptions::InnerCompilationError("Extention error: " + e.error, value.line, value.pos);
+			}
+			return {};
+		} else
+			throw Exceptions::InnerCompilationError("Unsupported directive.",
+													value.line, value.pos);
+	}
+	std::list<Token> process_directives(std::list<Token> &tokens) {
+		for (auto it = tokens.begin(); it != tokens.end();) {
+			if (it->type == TokenType::directive) {
+				std::list<Token> params;
+				auto it2 = it;
+				while (it2->type != TokenType::new_line)
+					params.push_back(*it2++);
+				params.push_back(*it2++);
+				auto res = process_directive(params);
+				if (it != tokens.begin()) {
+					auto del = it--;
+					tokens.erase(del, it2);
+				} else {
+					tokens.erase(tokens.begin(), it2);
+					it = tokens.begin();
+				}
+				tokens.insert(it, res.begin(), res.end());
+			} else
+				it++;
+		}
+		return tokens;
+	}
 }
 
 #include <fstream>
@@ -205,14 +245,12 @@ namespace ric {
 	std::list<Token> tokenize(std::string const& path) {
 		std::ifstream source;
 		source.open(path);
-		if (!source) {
+		if (!source)
 			throw Exceptions::CompilationError("Unable to open file.", 0, 0, path);
-			exit(1);
-		}
 
-		if (auto pos = path.find_last_of('/'); pos != path.size())
-			current_path = path.substr(0, pos);
-		else if (auto pos = path.find_last_of('\\'); pos != path.size())
+		auto pos1 = path.find_last_of('/'), pos2 = path.find_last_of('\\');
+		auto pos = std::max(pos1, pos2);
+		if (pos != path.size())
 			current_path = path.substr(0, pos);
 		else
 			current_path = "";
@@ -220,37 +258,55 @@ namespace ric {
 		std::list<Token> tokens;
 
 		bool is_commentary = false;
-		size_t c = 0;
+		size_t line = 0;
 		std::string temp;
 		while (std::getline(source, temp)) {
 			if (temp.size() != 0)
-				parse_line(tokens, is_commentary, temp, c);
-			c++;
+				parse_line(tokens, is_commentary, temp, line);
+			line++;
 		}
 		if (is_commentary)
 			throw Exceptions::InnerCompilationError("Looks like there is an unclosed commentary at the end of the file.",
-													c, 0);
+													line, 0);
 
+		for (auto it = ++tokens.begin(); it != tokens.end(); it++)
+			tokens.insert(it, Token(TokenType::new_line, "", it->line, -1));
+		tokens.emplace_back(TokenType::new_line, "", tokens.back().line, -1);
 		for (auto it = tokens.begin(); it != tokens.end(); it++)
 			if (it->type == TokenType::unknown)
 				for (int i = 0; i < it->value.size(); i++)
 					if (split_tokens(tokens, it, i))
 						i = -1;
 
+		for (auto it = tokens.begin(); it != tokens.end(); it++)
+			if (it->value == ";")
+				it->type = TokenType::new_line;
+		
 		for (auto it = tokens.begin(); it != tokens.end();) {
-			if (it->type == TokenType::unknown)
-				if (it->value.size() == 0)
-					if (it != tokens.begin()) {
-						auto del = it--;
-						tokens.erase(del);
-					} else {
-						tokens.pop_front();
-						it = tokens.begin();
-						continue;
-					}
-			it++;
+			if (it->type == TokenType::unknown && it->value.size() == 0)
+				if (it != tokens.begin()) {
+					auto del = it--;
+					tokens.erase(del);
+				} else {
+					tokens.pop_front();
+					it = tokens.begin();
+				}
+			else
+				it++;
 		}
-
+		for (auto it = tokens.begin(); it != tokens.end();) {
+			if (is_double_new_line(it, tokens))
+				if (it != tokens.begin()) {
+					auto del = it--;
+					tokens.erase(del);
+				} else {
+					tokens.pop_front();
+					it = tokens.begin();
+				}
+			else
+				it++;
+		}
+		
 		for (auto it = tokens.begin(); it != tokens.end(); it++)
 			if (it->type == TokenType::unknown) {
 				if (it->value.size() == 1 && is_operator(it))
@@ -263,18 +319,16 @@ namespace ric {
 					continue;
 				else if (is_color_literal(it))
 					continue;
+				else if (is_file_name(it))
+					continue;
+				else if (is_extention_name(it))
+					continue;
 				else
 					throw Exceptions::InnerCompilationError("Unknown Token: " + it->value, it->line, it->pos);
 			}
 
-		for (auto it = tokens.begin(); it != tokens.end(); it++)
-			if (it->type == TokenType::block && it->value == "}") {
-				std::pair<size_t, size_t> temp(it->line, it->pos);
-				auto ins = it;
-				if (++ins != tokens.end() && ins->type != TokenType::semicolon)
-					tokens.insert(ins, Token(TokenType::semicolon, "", temp.first, temp.second + 1));
-			}
-
+		process_directives(tokens);
+		
 		return tokens;
 	}
 }

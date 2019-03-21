@@ -21,21 +21,7 @@ std::string ric::Exceptions::CompilationError::what() const {
 	return s.str();
 }
 
-bool ric::use_parameters::double_precision = false;
-bool ric::use_parameters::alpha_colors = false;
-
-double ric::number(std::string const& s) {
-	std::istringstream iss(s);
-	double r;
-	iss >> r;
-	return r;
-}
-std::string ric::number(double const& s) {
-	std::ostringstream oss;
-	oss << s;
-	return oss.str();
-}
-
+/*
 ric::primitive_type ric::convert_to_primitive_type(Tree tree) {
 	if (tree->type != TokenType::identificator)
 		throw Exceptions::InnerCompilationError("Unsupported primitive type.", tree->line, tree->pos);
@@ -66,28 +52,28 @@ ric::primitive_type ric::convert_to_primitive_type(Tree tree) {
 uint8_t ric::convert(primitive_type const& s) {
 	return uint8_t(s);
 }
-
+*/
 namespace ric {
 	std::list<Token> tokenize(std::string const& path);
-	Tree analyze(std::list<Token> const& tokens);
-	void generate(std::ostream &f, Tree tree);
+	//Tree analyze(std::list<Token> const& tokens);
+	//void generate(std::ostream &f, Tree tree);
 }
 void ric::compile(std::string const& path) {
 	std::list<ric::Token> tokens;
 	Tree tree;
-	try {
+	//try {
 		tokens = tokenize(path);
-		tree = analyze(tokens);
-		std::ofstream obj_file;
-		auto pos = path.find_last_of('.');
-		if (pos == path.size())
-			throw Exceptions::CompilationError("Error determining object file name. Make sure source file isn't corrupted and is prprly named.", 0, 0, path);
-		obj_file.open(path.substr(0, pos) + ".rio", std::ios::binary | std::ios::out);
-		if (!obj_file)
-			throw Exceptions::CompilationError("Unable to open object file for writing. It's possibly already in use.", 0, 0, path);
-		generate(obj_file, tree);
-	} catch (Exceptions::InnerCompilationError &e) {
-		throw Exceptions::CompilationError(e, path);
-	}
+		//tree = analyze(tokens);
+		//std::ofstream obj_file;
+		//auto pos = path.find_last_of('.');
+		//if (pos == path.size())
+		//	throw Exceptions::CompilationError("Error determining object file name. Make sure source file isn't corrupted and is properly named.", 0, 0, path);
+		//obj_file.open(path.substr(0, pos) + ".rio", std::ios::binary | std::ios::out);
+		//if (!obj_file)
+		//	throw Exceptions::CompilationError("Unable to open object file for writing. There is a possibility it's already in use.", 0, 0, path);
+		//generate(obj_file, tree);
+	//} catch (Exceptions::InnerCompilationError &e) {
+	//	throw Exceptions::CompilationError(e, path);
+	//}
 	return;
 }

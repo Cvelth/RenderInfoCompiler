@@ -87,7 +87,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../;../../MyGraphicsLibrary/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../;../../MyGraphicsLibrary/;../../MyMathematicsLibrary/</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
@@ -97,7 +97,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../;../../MyGraphicsLibrary/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../;../../MyGraphicsLibrary/;../../MyMathematicsLibrary/</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
@@ -109,7 +109,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../;../../MyGraphicsLibrary/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../;../../MyGraphicsLibrary/;../../MyMathematicsLibrary/</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -125,7 +125,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../;../../MyGraphicsLibrary/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../;../../MyGraphicsLibrary/;../../MyMathematicsLibrary/</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -145,6 +145,11 @@
     <ClCompile Include="ric.cpp" />
     <ClCompile Include="syntax.cpp" />
     <ClCompile Include="tokenize.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ric_ext\ric_ext.vcxproj">
+      <Project>{e4845aab-7d39-4300-8da5-fef3e9d940b6}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

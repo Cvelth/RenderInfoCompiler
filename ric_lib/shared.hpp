@@ -9,30 +9,30 @@ namespace ric::Exceptions {
 		InnerCompilationError(std::string const& error, size_t line, size_t pos)
 			: error(error), line(line), pos(pos) {}
 	};
-	class LibraryCompilationError {
-	public:
-		std::string error;
-		LibraryCompilationError(std::string const& error) : error(error) {}
-	};
 }
 #include <list>
 namespace ric {
 	enum class TokenType {
 		unknown,
-		semicolon,
-		comma,
-		arithmetic,
-		block,
-		index,
-		bracket,
-		reserved,
-		datatype,
-		library,
+		new_line,
 		identificator,
 		number,
 		color_literal,
-		object,
-		namespace_
+		directive,
+		keyword,
+		datatype,
+		arithmetic,
+		block,
+		index,
+		args,
+		comma,
+		file,
+		extention
+
+		//reserved,
+		//library,
+		//object,
+		//namespace_
 	};
 	struct Token {
 		TokenType type;
@@ -40,10 +40,18 @@ namespace ric {
 		size_t line, pos;
 		Token(TokenType type, std::string value, size_t line, size_t pos)
 			: type(type), value(value), line(line), pos(pos) {}
+		Token(std::string value, size_t line, size_t pos) 
+			: Token(TokenType::unknown, value, line, pos) {}
 		std::string* operator->() { return &value; }
 		std::string const* operator->() const { return &value; }
 	};
 }
+
+#include <map>
+namespace ric {
+	extern std::map<std::string, bool> mode_parameters;
+}
+
 #include <memory>
 namespace ric {
 	struct Node : Token {
@@ -63,23 +71,17 @@ namespace ric {
 			return value < other.value;
 		}
 	};
+	using Tree = std::shared_ptr<Node>;
 }
+
+/*
 #include <list>
 namespace ric {
 	enum class DataType {
 		palette, color, object, primitive
 	};
-	using Tree = std::shared_ptr<Node>;
 }
 
-namespace ric {
-	struct use_parameters {
-		static bool double_precision; // = false.
-		static bool alpha_colors; // = false.
-	};
-	double number(std::string const& s);
-	std::string number(double const& s);
-}
 
 #include <vector>
 #include <map>
@@ -174,14 +176,15 @@ namespace ric {
 	};
 }
 
-namespace mgl::math { class transformation3d; }
+namespace mml { class transformation3d; }
 namespace ric::library {
 	Primitive ellipse(double aspect_ratio, bool is_filled, size_t points = 30, size_t numbers_per_vertex = 2);
 	Primitive circle(bool is_filled, size_t points = 30, size_t numbers_per_vertex = 2);
 	Primitive rectangle(double aspect_ratio, bool is_filled, size_t numbers_per_vertex = 2);
 	Primitive square(bool is_filled, size_t numbers_per_vertex = 2);
 
-	std::unique_ptr<mgl::math::transformation3d> translation(double x, double y, double z);
-	std::unique_ptr<mgl::math::transformation3d> rotation(double a, double x, double y, double z);
-	std::unique_ptr<mgl::math::transformation3d> scaling(double x, double y, double z);
+	std::unique_ptr<mml::transformation3d> translation(double x, double y, double z);
+	std::unique_ptr<mml::transformation3d> rotation(double a, double x, double y, double z);
+	std::unique_ptr<mml::transformation3d> scaling(double x, double y, double z);
 }
+*/
