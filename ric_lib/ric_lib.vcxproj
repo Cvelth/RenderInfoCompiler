@@ -134,6 +134,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="objects.hpp" />
     <ClInclude Include="ric.hpp" />
     <ClInclude Include="shared.hpp" />
     <ClInclude Include="version.hpp" />

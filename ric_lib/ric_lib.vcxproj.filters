@@ -10,6 +10,9 @@
     <ClInclude Include="shared.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="objects.hpp">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Headers">
