@@ -9,3 +9,11 @@ bool ric::ExtentionManager::add(std::string const& name) {
 	else
 		throw Exceptions::ExtentionError("Unsuported Extention");
 }
+std::set<std::string> const ric::ExtentionManager::names() {
+	std::set<std::string> ret;
+	for (auto &ext : enabled_extentions) {
+		auto &temp = ext->names();
+		ret.insert(temp.cbegin(), temp.cend());
+	}
+	return ret;
+}

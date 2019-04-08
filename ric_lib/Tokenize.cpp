@@ -238,6 +238,14 @@ namespace ric {
 		}
 		return tokens;
 	}
+	std::list<Token> process_extentions(std::list<Token> &tokens) {
+		auto names = ExtentionManager::names();
+		for (auto &token : tokens)
+			if (token.type == TokenType::identificator)
+				if (std::find_if(names.cbegin(), names.cend(), [&token](auto &s) -> auto { return s == token.value; }) != names.cend())
+					token.type = TokenType::extention;
+		return tokens;
+	}
 }
 
 #include <fstream>
@@ -328,6 +336,7 @@ namespace ric {
 			}
 
 		process_directives(tokens);
+		process_extentions(tokens);
 		
 		return tokens;
 	}

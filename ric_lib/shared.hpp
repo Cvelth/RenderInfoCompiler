@@ -27,12 +27,9 @@ namespace ric {
 		args,
 		comma,
 		file,
-		extention
-
-		//reserved,
-		//library,
-		//object,
-		//namespace_
+		extention,
+		object,
+		namespace_
 	};
 	struct Token {
 		TokenType type;

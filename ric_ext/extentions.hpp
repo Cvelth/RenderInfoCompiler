@@ -23,5 +23,6 @@ namespace ric {
 			return true;
 		}
 		static bool add(std::string const& name);
+		static std::set<std::string> const names();
 	};
 }
