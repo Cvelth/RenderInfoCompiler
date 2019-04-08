@@ -9,22 +9,22 @@ namespace ric {
 		return ret;
 	}
 
-	inline bool check_type(TokenType const& type) {
-		return type == TokenType::block || type == TokenType::index || type == TokenType::bracket;
+	inline bool is_bracket(TokenType const& type) {
+		return type == TokenType::block || type == TokenType::index || type == TokenType::args;
 	}
 	std::list<Tree> parse_brackets(std::list<Tree> source, TokenType current = TokenType::unknown) {
 		for (auto it = source.begin(); it != source.end(); it++) {
-			if (check_type((*it)->type))
+			if (is_bracket((*it)->type))
 				if ((*it)->value == "(" || (*it)->value == "[" || (*it)->value == "{") {
 					auto temp = it; temp++;
 					auto nodes = parse_brackets({temp, source.end()}, (*it)->type);
 					source = {source.begin(), it};
 					source.insert(source.end(), nodes.begin(), nodes.end());
 					it = source.begin();
-				} else if (check_type(current) && ((*it)->value == ")" || (*it)->value == "]" || (*it)->value == "}")) {
+				} else if (is_bracket(current) && ((*it)->value == ")" || (*it)->value == "]" || (*it)->value == "}")) {
 					Tree ret;
-					if ((*it)->value == ")" && current == TokenType::bracket)
-						ret = std::make_shared<Node>(TokenType::bracket, "", (*it)->line, (*it)->pos);
+					if ((*it)->value == ")" && current == TokenType::args)
+						ret = std::make_shared<Node>(TokenType::args, "", (*it)->line, (*it)->pos);
 					else if ((*it)->value == "}" && current == TokenType::block)
 						ret = std::make_shared<Node>(TokenType::block, "", (*it)->line, (*it)->pos);
 					else if ((*it)->value == "]" && current == TokenType::index)
@@ -45,6 +45,10 @@ namespace ric {
 		return source;
 	}
 
+	bool no_new_line_condition(Tree node) {
+		return (node->type == TokenType::arithmetic || node->type == TokenType::comma) &&
+			node->left == nullptr && node->right == nullptr;
+	}
 	Tree parse_objects(std::list<Tree> source) {
 		if (source.size() == 0)
 			return nullptr;
@@ -52,32 +56,41 @@ namespace ric {
 			return source.front();
 		else {
 			for (auto it = source.begin(); it != source.end(); it++) {
-				if ((*it)->type == TokenType::semicolon) {
-					auto ret = it;
-					if (it != source.begin())
-						(*it)->left = parse_tree(std::list<Tree>{source.begin(), it});
-					if (it != --source.end())
-						(*it)->right = parse_tree(std::list<Tree>{++it, source.end()});
-					return *ret;
+				if ((*it)->type == TokenType::new_line) {
+					auto prev = it, next = it;
+					if (it != source.begin() && no_new_line_condition(*--prev)) {
+						source.erase(it);
+						it = prev;
+					} else if (it != --source.end() && no_new_line_condition(*++next)) {
+						source.erase(it);
+						it = next;
+					} else {
+						auto ret = it;
+						if (it != source.begin())
+							(*ret)->left = parse_tree(std::list<Tree>{source.begin(), it});
+						if (it != --source.end())
+							(*ret)->right = parse_tree(std::list<Tree>{++it, source.end()});
+						return *ret;
+					}
 				}
 			}
 			for (auto it = source.begin(); it != source.end(); it++) {
 				if ((*it)->type == TokenType::comma) {
 					auto ret = it;
 					if (it != source.begin())
-						(*it)->left = parse_tree(std::list<Tree>{source.begin(), it});
+						(*ret)->left = parse_tree(std::list<Tree>{source.begin(), it});
 					if (it != --source.end())
-						(*it)->right = parse_tree(std::list<Tree>{++it, source.end()});
+						(*ret)->right = parse_tree(std::list<Tree>{++it, source.end()});
 					return *ret;
 				}
 			}
 			for (auto it = source.begin(); it != source.end(); it++)
 				if ((*it)->type == TokenType::arithmetic && (*it)->value != ",") {
 					auto ret = it;
-					(*it)->left = parse_tree(std::list<Tree>{source.begin(), it});
-					(*it)->right = parse_tree(std::list<Tree>{++it, source.end()});
+					(*ret)->left = parse_tree(std::list<Tree>{source.begin(), it});
+					(*ret)->right = parse_tree(std::list<Tree>{++it, source.end()});
 					return *ret;
-				} else if ((*it)->type == TokenType::reserved && (*it)->value == "virtual") {
+				} else if ((*it)->type == TokenType::keyword && (*it)->value == "virtual") {
 					if (auto temp = it++; (*it)->type == TokenType::datatype) {
 						(*it)->left = *temp;
 						source.erase(temp);
@@ -93,7 +106,7 @@ namespace ric {
 				t[i++] = it;
 			if (t[0]->type == TokenType::datatype && t[1]->type == TokenType::identificator
 				&& ((t[2]->type == TokenType::index && t[2]->right->type == TokenType::identificator) 
-					|| t[2]->type == TokenType::bracket)
+					|| t[2]->type == TokenType::args)
 				&& t[3]->type == TokenType::block) 
 			{
 				t[2]->left = t[0];
@@ -111,12 +124,12 @@ namespace ric {
 					ret->right = (*--source.end())->right;
 					ret->type = TokenType::object;
 					return ret;
-				} else if ((*++source.begin())->type == TokenType::bracket) {
+				} else if ((*++source.begin())->type == TokenType::args) {
 					(*++source.begin())->left = source.front();
 					return std::make_shared<Node>(TokenType::object, (*++source.begin())->line, (*++source.begin())->pos,
 												  *++source.begin(), source.back()->right);
 				}
-			} else if (source.front()->type == TokenType::reserved && source.front()->value == "namespace"
+			} else if (source.front()->type == TokenType::keyword && source.front()->value == "namespace"
 					   && (*++source.begin())->type == TokenType::identificator && source.back()->type == TokenType::block) {
 				auto ret = *++source.begin();
 				ret->right = source.back()->right;
@@ -124,7 +137,7 @@ namespace ric {
 				return ret;
 			}
 		if (source.size() == 2)
-			if (source.front()->type == TokenType::library && source.back()->type == TokenType::bracket) {
+			if (source.front()->type == TokenType::extention && source.back()->type == TokenType::args) {
 				source.front()->right = source.back()->right;
 				return source.front();
 			} else if (source.front()->type == TokenType::identificator && source.back()->type == TokenType::index) {
@@ -149,7 +162,7 @@ namespace ric {
 		tree->type = TokenType::number;
 		tree->left = nullptr;
 		tree->right = nullptr;
-		tree->value = number(value);
+		tree->value = std::to_string(value);
 	}
 
 	void simplify_number(Tree tree) {
@@ -159,7 +172,7 @@ namespace ric {
 			throw Exceptions::InnerCompilationError("There is nothing to the right of operator" + tree->value, tree->line, tree->pos);
 		else if (tree->right->type != TokenType::number)
 			return;
-		auto right = number(tree->right->value);
+		auto right = std::stod(tree->right->value);
 		if (!tree->left)
 			switch (tree->value[0]) {
 				case '+': return successful_simplification(tree, +right);
@@ -168,7 +181,7 @@ namespace ric {
 			} 
 		else if (tree->left->type != TokenType::number)
 			return;
-		auto left = number(tree->left->value);
+		auto left = std::stod(tree->left->value);
 		switch (tree->value[0]) {
 			case '+': return successful_simplification(tree, left + right);
 			case '-': return successful_simplification(tree, left - right);
@@ -180,7 +193,7 @@ namespace ric {
 	}
 
 	Tree clean_tree(Tree &tree) {
-		if (tree->type == TokenType::semicolon)
+		if (tree->type == TokenType::new_line)
 			if (!tree->left)
 				if (!tree->right)
 					tree = nullptr;
@@ -205,7 +218,7 @@ namespace ric {
 	}
 
 	Tree analyze(std::list<Token> const& tokens) {
-		Tree g;
-		return clean_tree(g = parse_tree(convert_to_nodes(tokens)));
+		Tree g = parse_tree(convert_to_nodes(tokens));
+		return clean_tree(g);
 	}
 }
