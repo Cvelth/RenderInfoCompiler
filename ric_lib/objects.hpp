@@ -90,5 +90,10 @@ namespace ric {
 		std::map<std::string, Palette> palettes;
 		std::map<std::string, Primitive> primitives;
 		std::map<std::string, Object> objects;
+
+		void add(std::string name, Color color) { colors.emplace(name, color); }
+		void add(std::string name, Palette palette) { palettes.emplace(name, palette); }
+		void add(std::string name, Primitive primitive) { primitives.emplace(name, primitive); }
+		void add(std::string name, Object object) { objects.emplace(name, object); }
 	};
 }
