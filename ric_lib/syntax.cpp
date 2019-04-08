@@ -193,10 +193,15 @@ namespace ric {
 	}
 
 	Tree clean_tree(Tree &tree) {
+		if (tree->left)
+			clean_tree(tree->left);
+		if (tree->right)
+			clean_tree(tree->right);
+
 		if (tree->type == TokenType::new_line)
 			if (!tree->left)
 				if (!tree->right)
-					tree = nullptr;
+					return tree = nullptr;
 				else
 					tree = tree->right;
 			else
@@ -209,11 +214,6 @@ namespace ric {
 
 		if (tree->type == TokenType::arithmetic)
 			simplify_number(tree);
-
-		if (tree->left)
-			clean_tree(tree->left);
-		if (tree->right)
-			clean_tree(tree->right);
 		return tree;
 	}
 
